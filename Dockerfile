@@ -27,8 +27,8 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
-# 빌드된 파일을 nginx에 복사 (Vite는 dist 폴더에 빌드)
-COPY --from=build /app/dist /usr/share/nginx/html
+# 빌드된 파일을 nginx에 복사 (Vite는 build 폴더에 빌드)
+COPY --from=build /app/build /usr/share/nginx/html
 
 # nginx 설정 파일 복사
 COPY nginx.conf /etc/nginx/nginx.conf
