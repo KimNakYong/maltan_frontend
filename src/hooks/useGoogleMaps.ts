@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { GOOGLE_MAPS_API_KEY } from '../utils/constants';
 
 /**
  * Google Maps API 로드 훅

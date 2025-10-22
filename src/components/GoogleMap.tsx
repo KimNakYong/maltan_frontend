@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
-import { GOOGLE_MAPS_API_KEY, MAP } from '../utils/constants';
+import { MAP } from '../utils/constants';
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
