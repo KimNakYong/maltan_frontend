@@ -197,8 +197,10 @@ const CommunityDetailPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '날짜 없음';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '잘못된 날짜';
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
@@ -258,9 +260,11 @@ const CommunityDetailPage: React.FC = () => {
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Avatar sx={{ width: 32, height: 32 }}>U</Avatar>
+            <Avatar sx={{ width: 32, height: 32 }}>
+              {post.userName ? post.userName[0] : 'U'}
+            </Avatar>
             <Typography variant="body2" color="text.secondary">
-              사용자{post.userId}
+              {post.userName || `사용자${post.userId}`}
             </Typography>
             <Typography variant="body2" color="text.secondary">•</Typography>
             <Typography variant="body2" color="text.secondary">
