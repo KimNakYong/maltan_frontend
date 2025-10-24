@@ -15,6 +15,8 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import PlaceDetailPage from './pages/PlaceDetailPage';
 import CommunityPage from './pages/CommunityPage';
+import CommunityWritePage from './pages/CommunityWritePage';
+import CommunityDetailPage from './pages/CommunityDetailPage';
 import MapTestPage from './pages/MapTestPage';
 
 // Admin Pages
@@ -126,6 +128,12 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/place/:id" element={<PlaceDetailPage />} />
                 <Route path="/community" element={<CommunityPage />} />
+                <Route path="/community/write" element={
+                  <PrivateRoute>
+                    <CommunityWritePage />
+                  </PrivateRoute>
+                } />
+                <Route path="/community/:id" element={<CommunityDetailPage />} />
                 <Route path="/map-test" element={<MapTestPage />} />
 
                 {/* Private Routes */}

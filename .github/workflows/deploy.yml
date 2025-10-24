@@ -1,0 +1,67 @@
+name: Deploy Frontend to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Create .env file
+        run: |
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env
+          echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" >> .env
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Deploy to Nginx
+        run: |
+          # 기존 파일 백업
+          sudo mkdir -p /var/www/maltan-frontend-backup
+          if [ -d /var/www/maltan-frontend ]; then
+            sudo cp -r /var/www/maltan-frontend/* /var/www/maltan-frontend-backup/ || true
+          fi
+          
+          # 배포 디렉토리 생성
+          sudo mkdir -p /var/www/maltan-frontend
+          
+          # 빌드 파일 복사
+          sudo rm -rf /var/www/maltan-frontend/*
+          sudo cp -r dist/* /var/www/maltan-frontend/
+          
+          # 권한 설정
+          sudo chown -R www-data:www-data /var/www/maltan-frontend
+          sudo chmod -R 755 /var/www/maltan-frontend
+      
+      - name: Reload Nginx
+        run: |
+          sudo nginx -t
+          sudo systemctl reload nginx
+      
+      - name: Health Check
+        run: |
+          sleep 2
+          curl -f http://localhost:3000 || echo "Health check pending..."
+          
+      - name: Cleanup
+        if: success()
+        run: |
+          sudo rm -rf /var/www/maltan-frontend-backup
+
