@@ -23,9 +23,9 @@ const HomePage: React.FC = () => {
         <Typography variant="h6" sx={{ mb: 3 }}>
           당신 주변의 맛집, 관광지, 문화시설을 찾아보세요
         </Typography>
-        {isAuthenticated && user?.address && (
+        {isAuthenticated && user?.preferredRegions && user.preferredRegions.length > 0 && (
           <Typography variant="body1">
-            📍 내 동네: {user.address}
+            📍 관심 지역: {user.preferredRegions.map(r => r.districtName).join(', ')}
           </Typography>
         )}
       </Paper>

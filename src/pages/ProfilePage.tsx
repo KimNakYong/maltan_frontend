@@ -21,11 +21,15 @@ import { getProfile, updateProfile, changePassword } from '../store/slices/userS
 import { VALIDATION } from '../utils/constants';
 import { UpdateProfileRequest, ChangePasswordRequest } from '../services/userService';
 import EditIcon from '@mui/icons-material/Edit';
+import RegionSelector from '../components/RegionSelector';
+import { SelectedRegion } from '../utils/regionData';
 
 const ProfilePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { profile, loading, error } = useAppSelector((state) => state.user);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [selectedRegions, setSelectedRegions] = useState<SelectedRegion[]>([]);
+  const [regionError, setRegionError] = useState<string>('');
 
   const {
     register: registerProfile,
@@ -49,14 +53,38 @@ const ProfilePage: React.FC = () => {
     if (profile) {
       resetProfile({
         username: profile.username,
-        address: profile.address,
         phone: profile.phone || '',
       });
+      
+      // 선호 지역 설정
+      if (profile.preferredRegions) {
+        setSelectedRegions(profile.preferredRegions);
+      }
     }
   }, [profile, resetProfile]);
 
   const onSubmitProfile = async (data: UpdateProfileRequest) => {
-    await dispatch(updateProfile(data));
+    // 지역 선택 검증
+    if (selectedRegions.length === 0) {
+      setRegionError('최소 1개 이상의 지역을 선택해주세요.');
+      return;
+    }
+
+    setRegionError('');
+
+    // 선택된 지역 정보를 포함하여 업데이트
+    const updateData = {
+      ...data,
+      preferredRegions: selectedRegions.map((region) => ({
+        city: region.city,
+        cityName: region.cityName,
+        district: region.district,
+        districtName: region.districtName,
+        priority: region.priority,
+      })),
+    };
+
+    await dispatch(updateProfile(updateData));
   };
 
   const onSubmitPassword = async (data: ChangePasswordRequest) => {
@@ -148,15 +176,10 @@ const ProfilePage: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="주소"
-                    {...registerProfile('address', {
-                      required: '주소를 입력해주세요',
-                    })}
-                    error={!!profileErrors.address}
-                    helperText={profileErrors.address?.message}
-                    disabled={loading}
+                  <RegionSelector
+                    selectedRegions={selectedRegions}
+                    onChange={setSelectedRegions}
+                    error={regionError}
                   />
                 </Grid>
 

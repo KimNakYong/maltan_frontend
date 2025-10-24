@@ -1,13 +1,13 @@
 import { apiClient } from './api';
 import { API_ROUTES } from '../utils/constants';
-import { User } from './authService';
+import { User, PreferredRegion } from './authService';
 
 // Types
 export interface UpdateProfileRequest {
   username?: string;
-  address?: string;
   phone?: string;
   profileImage?: string;
+  preferredRegions?: PreferredRegion[];
 }
 
 export interface ChangePasswordRequest {
