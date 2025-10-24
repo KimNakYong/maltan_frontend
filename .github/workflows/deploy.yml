@@ -34,17 +34,24 @@ jobs:
         run: |
           # 빌드 파일 확인
           ls -la build/
+          echo "Checking API URL in build..."
+          grep -r "localhost" build/assets/*.js || echo "No localhost found"
           
           # 배포 디렉토리 생성
           sudo mkdir -p /var/www/maltan-frontend
           
-          # 빌드 파일 복사
+          # 기존 파일 완전 삭제
           sudo rm -rf /var/www/maltan-frontend/*
+          
+          # 빌드 파일 복사
           sudo cp -r build/* /var/www/maltan-frontend/
           
           # 권한 설정
           sudo chown -R www-data:www-data /var/www/maltan-frontend
           sudo chmod -R 755 /var/www/maltan-frontend
+          
+          echo "Deployed files:"
+          ls -la /var/www/maltan-frontend/
       
       - name: Reload Nginx
         run: |
