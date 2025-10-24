@@ -187,7 +187,7 @@ const CommunityPage: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
-      ) : posts.length === 0 ? (
+      ) : !posts || posts.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <Typography variant="h6" color="text.secondary">
             게시글이 없습니다.
@@ -197,7 +197,7 @@ const CommunityPage: React.FC = () => {
         <>
           {/* 게시글 목록 */}
           <Grid container spacing={2}>
-            {posts.map((post) => (
+            {posts && posts.map((post) => (
           <Grid item xs={12} key={post.id}>
             <Card
               onClick={() => handlePostClick(post.id)}
