@@ -8,12 +8,20 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface PreferredRegion {
+  city: string;
+  cityName: string;
+  district: string;
+  districtName: string;
+  priority: number;
+}
+
 export interface RegisterRequest {
   email: string;
   password: string;
   username: string;
-  address: string;
   phone?: string;
+  preferredRegions: PreferredRegion[];
 }
 
 export interface AuthResponse {
@@ -26,8 +34,8 @@ export interface User {
   id: string;
   email: string;
   username: string;
-  address: string;
   phone?: string;
+  preferredRegions?: PreferredRegion[];
   profileImage?: string;
   createdAt: string;
   updatedAt: string;
