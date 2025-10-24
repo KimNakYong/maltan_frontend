@@ -229,7 +229,7 @@ const CommunityDetailPage: React.FC = () => {
     );
   }
 
-  const isAuthor = user?.id === post.userId.toString();
+  const isAuthor = user?.id && post?.userId ? user.id === post.userId.toString() : false;
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
