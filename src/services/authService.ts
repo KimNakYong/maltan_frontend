@@ -37,6 +37,7 @@ export interface User {
   phone?: string;
   preferredRegions?: PreferredRegion[];
   profileImage?: string;
+  role: 'USER' | 'ADMIN';  // 사용자 권한
   createdAt: string;
   updatedAt: string;
 }

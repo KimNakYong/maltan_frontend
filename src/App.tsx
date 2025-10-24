@@ -17,8 +17,18 @@ import PlaceDetailPage from './pages/PlaceDetailPage';
 import CommunityPage from './pages/CommunityPage';
 import MapTestPage from './pages/MapTestPage';
 
+// Admin Pages
+import DashboardPage from './pages/admin/DashboardPage';
+import UsersPage from './pages/admin/UsersPage';
+import PlacesPage from './pages/admin/PlacesPage';
+import AdminCommunityPage from './pages/admin/CommunityPage';
+import StatisticsPage from './pages/admin/StatisticsPage';
+import LogsPage from './pages/admin/LogsPage';
+import SettingsPage from './pages/admin/SettingsPage';
+
 // Components
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 import PrivateRoute from './components/PrivateRoute';
 
 // Theme
@@ -88,8 +98,28 @@ function App() {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Router>
-            <Layout>
-              <Routes>
+            <Routes>
+              {/* Admin Routes */}
+              <Route
+                path="/admin/*"
+                element={
+                  <PrivateRoute requireAdmin>
+                    <AdminLayout />
+                  </PrivateRoute>
+                }
+              >
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="places" element={<PlacesPage />} />
+                <Route path="community" element={<AdminCommunityPage />} />
+                <Route path="statistics" element={<StatisticsPage />} />
+                <Route path="logs" element={<LogsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+
+              {/* User Routes */}
+              <Route path="/*" element={<Layout><Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -110,8 +140,8 @@ function App() {
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Layout>
+              </Routes></Layout>} />
+            </Routes>
           </Router>
           <Toaster
             position="top-right"
