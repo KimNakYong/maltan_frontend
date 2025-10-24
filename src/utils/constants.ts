@@ -1,5 +1,6 @@
 // API Endpoints
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// 상대 경로 사용 (Nginx 프록시를 통해 백엔드로 연결)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // API Routes
