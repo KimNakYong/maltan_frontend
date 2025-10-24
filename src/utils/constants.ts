@@ -1,6 +1,9 @@
 // API Endpoints
 // 상대 경로 사용 (Nginx 프록시를 통해 백엔드로 연결)
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+// 빈 문자열이면 상대 경로로 요청 (프로덕션 환경)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined 
+  ? import.meta.env.VITE_API_BASE_URL 
+  : '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 // API Routes
