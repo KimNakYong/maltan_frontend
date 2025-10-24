@@ -25,8 +25,7 @@ jobs:
       
       - name: Create .env file
         run: |
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env
-          echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" >> .env
+          echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" > .env
       
       - name: Build
         run: npm run build
