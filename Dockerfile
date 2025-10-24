@@ -36,9 +36,9 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # 포트 노출
 EXPOSE 3000
 
-# Health check
+# Health check (IPv4 명시적 지정)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000 || exit 1
 
 # nginx 시작
 CMD ["nginx", "-g", "daemon off;"]
