@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+// API Base URL은 빈 문자열 (상대 경로 사용 - Nginx 프록시)
+const API_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 // 게시글 인터페이스
 export interface Post {
