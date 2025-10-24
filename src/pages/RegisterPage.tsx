@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Paper,
@@ -15,13 +15,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { register as registerAction, clearError } from '../store/slices/authSlice';
 import { VALIDATION } from '../utils/constants';
+import RegionSelector from '../components/RegionSelector';
+import { SelectedRegion } from '../utils/regionData';
 
 interface RegisterFormData {
   email: string;
   password: string;
   passwordConfirm: string;
   username: string;
-  address: string;
   phone: string;
 }
 
@@ -29,6 +30,9 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { loading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  const [selectedRegions, setSelectedRegions] = useState<SelectedRegion[]>([]);
+  const [regionError, setRegionError] = useState<string>('');
 
   const {
     register,
@@ -54,8 +58,28 @@ const RegisterPage: React.FC = () => {
   }, [dispatch]);
 
   const onSubmit = async (data: RegisterFormData) => {
+    // 지역 선택 검증
+    if (selectedRegions.length === 0) {
+      setRegionError('최소 1개 이상의 지역을 선택해주세요.');
+      return;
+    }
+
+    setRegionError('');
+
+    // 선택된 지역 정보를 포함하여 회원가입
     const { passwordConfirm, ...registerData } = data;
-    await dispatch(registerAction(registerData));
+    const registerDataWithRegions = {
+      ...registerData,
+      preferredRegions: selectedRegions.map((region) => ({
+        city: region.city,
+        cityName: region.cityName,
+        district: region.district,
+        districtName: region.districtName,
+        priority: region.priority,
+      })),
+    };
+
+    await dispatch(registerAction(registerDataWithRegions));
   };
 
   return (
@@ -162,16 +186,10 @@ const RegisterPage: React.FC = () => {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="주소"
-                placeholder="예: 서울시 강남구 역삼동"
-                {...register('address', {
-                  required: '주소를 입력해주세요',
-                })}
-                error={!!errors.address}
-                helperText={errors.address?.message || '회원가입 시 입력한 주소 기준으로 주변 정보를 추천해드립니다'}
-                disabled={loading}
+              <RegionSelector
+                selectedRegions={selectedRegions}
+                onChange={setSelectedRegions}
+                error={regionError}
               />
             </Grid>
 
