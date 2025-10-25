@@ -67,6 +67,7 @@ export interface PostListParams {
   regionGu?: string;
   regionDong?: string;
   isRecruitment?: boolean;
+  search?: string;
   page?: number;
   size?: number;
   sort?: string;

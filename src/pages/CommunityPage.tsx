@@ -52,7 +52,7 @@ const CommunityPage: React.FC = () => {
   // 게시글 목록 가져오기
   useEffect(() => {
     fetchPosts();
-  }, [selectedTab, selectedCategory, page]);
+  }, [selectedTab, selectedCategory, searchKeyword, page]);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -71,6 +71,10 @@ const CommunityPage: React.FC = () => {
 
       if (selectedCategory !== '전체') {
         params.category = selectedCategory;
+      }
+
+      if (searchKeyword && searchKeyword.trim() !== '') {
+        params.search = searchKeyword.trim();
       }
 
       const response = await getPosts(params);
