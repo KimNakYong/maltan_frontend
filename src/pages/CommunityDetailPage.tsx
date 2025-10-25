@@ -91,10 +91,10 @@ const CommunityDetailPage: React.FC = () => {
   };
 
   const handleDeletePost = async () => {
-    if (!id || !post) return;
+    if (!id || !post || !user?.id) return;
 
     try {
-      await deletePost(parseInt(id));
+      await deletePost(parseInt(id), parseInt(user.id));
       navigate('/community');
     } catch (err: any) {
       alert(err.response?.data?.message || '게시글 삭제에 실패했습니다.');
@@ -237,15 +237,6 @@ const CommunityDetailPage: React.FC = () => {
   const isAuthor = user?.id && post?.userId 
     ? parseInt(user.id) === post.userId || user.id === post.userId.toString()
     : false;
-  
-  // 디버깅용 로그
-  console.log('isAuthor check:', {
-    userId: user?.id,
-    postUserId: post?.userId,
-    isAuthor,
-    userIdType: typeof user?.id,
-    postUserIdType: typeof post?.userId
-  });
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>

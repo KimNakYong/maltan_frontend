@@ -76,8 +76,12 @@ const CommunityWritePage: React.FC = () => {
     try {
       const post = await getPost(parseInt(id));
       
-      // 작성자 확인
-      if (user?.id && post.userId.toString() !== user.id) {
+      // 작성자 확인 (타입 안전한 비교)
+      const isAuthor = user?.id && post.userId 
+        ? parseInt(user.id) === post.userId || user.id === post.userId.toString()
+        : false;
+      
+      if (!isAuthor) {
         alert('본인이 작성한 글만 수정할 수 있습니다.');
         navigate(`/community/${id}`);
         return;

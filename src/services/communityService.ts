@@ -161,8 +161,8 @@ export const updatePost = async (postId: number, data: Partial<CreatePostRequest
 };
 
 // 게시글 ??��
-export const deletePost = async (postId: number): Promise<void> => {
-  await api.delete(`/api/community/posts/${postId}`);
+export const deletePost = async (postId: number, userId?: number): Promise<void> => {
+  await api.delete(`/api/community/posts/${postId}${userId ? `?userId=${userId}` : ''}`);
 };
 
 // === ?��? API ===
