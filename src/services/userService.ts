@@ -19,7 +19,9 @@ export interface PreferredRegionsResponse {
 // 프로필 업데이트 요청
 export interface UpdateProfileRequest {
   name?: string;
+  phone?: string;
   phoneNumber?: string;
+  username?: string;
   preferredRegions?: PreferredRegion[];
 }
 
@@ -53,10 +55,31 @@ export const changeUserPassword = async (data: ChangePasswordRequest) => {
   return response.data;
 };
 
+// 프로필 이미지 업로드
+export const uploadProfileImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await axios.post(`${API_URL}/api/user/me/profile-image`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data.imageUrl;
+};
+
+// Aliases for backward compatibility
+export const getProfile = getMyInfo;
+export const updateProfile = updateUserProfile;
+export const changePassword = changeUserPassword;
+
 // default export 추가 (userSlice.ts에서 사용)
 export default {
   getMyPreferredRegions,
   getMyInfo,
   updateUserProfile,
   changeUserPassword,
+  uploadProfileImage,
+  getProfile,
+  updateProfile,
+  changePassword,
 };
