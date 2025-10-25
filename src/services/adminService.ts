@@ -111,6 +111,21 @@ export interface DashboardStats {
   inactiveUsers: number;
 }
 
+// 시스템 메트릭
+export interface SystemMetrics {
+  cpuUsage: number;
+  memoryUsage: number;
+  diskUsage: number;
+  totalMemory: number;
+  usedMemory: number;
+  freeMemory: number;
+  totalDisk: number;
+  usedDisk: number;
+  freeDisk: number;
+  availableProcessors: number;
+  systemLoadAverage: number;
+}
+
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const userStatsResponse = await api.get('/api/user/admin/stats');
@@ -136,6 +151,30 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       totalPosts: 0,
       adminUsers: 0,
       inactiveUsers: 0,
+    };
+  }
+};
+
+// 시스템 메트릭 조회
+export const getSystemMetrics = async (): Promise<SystemMetrics> => {
+  try {
+    const response = await api.get('/api/user/admin/system/metrics');
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error('시스템 메트릭 조회 실패:', error);
+    // 에러 시 기본값 반환
+    return {
+      cpuUsage: 0,
+      memoryUsage: 0,
+      diskUsage: 0,
+      totalMemory: 0,
+      usedMemory: 0,
+      freeMemory: 0,
+      totalDisk: 0,
+      usedDisk: 0,
+      freeDisk: 0,
+      availableProcessors: 0,
+      systemLoadAverage: 0,
     };
   }
 };

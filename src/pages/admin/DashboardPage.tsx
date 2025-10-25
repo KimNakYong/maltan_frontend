@@ -2,20 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
-  Paper,
   Typography,
   Card,
   CardContent,
-  LinearProgress,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   CircularProgress,
   Alert,
+  Paper,
+  LinearProgress,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -26,59 +19,7 @@ import {
   Memory,
   Storage,
 } from '@mui/icons-material';
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { getDashboardStats, DashboardStats } from '../../services/adminService';
-
-// Mock 데이터 (시스템 메트릭은 실제 모니터링 시스템 필요)
-const mockSystemMetrics = {
-  cpu: 45,
-  memory: 68,
-  disk: 52,
-  network: 34,
-};
-
-const mockTrafficData = [
-  { time: '00:00', requests: 120, errors: 2 },
-  { time: '04:00', requests: 80, errors: 1 },
-  { time: '08:00', requests: 350, errors: 5 },
-  { time: '12:00', requests: 520, errors: 8 },
-  { time: '16:00', requests: 680, errors: 12 },
-  { time: '20:00', requests: 450, errors: 6 },
-];
-
-const mockResponseTimeData = [
-  { time: '00:00', user: 120, place: 150, community: 180, recommendation: 200 },
-  { time: '04:00', user: 110, place: 140, community: 170, recommendation: 190 },
-  { time: '08:00', user: 130, place: 160, community: 190, recommendation: 220 },
-  { time: '12:00', user: 150, place: 180, community: 210, recommendation: 250 },
-  { time: '16:00', user: 140, place: 170, community: 200, recommendation: 230 },
-  { time: '20:00', user: 125, place: 155, community: 185, recommendation: 210 },
-];
-
-const mockServiceStatus = [
-  { name: 'User Service', status: 'healthy', uptime: '99.9%', responseTime: '120ms' },
-  { name: 'Place Service', status: 'healthy', uptime: '99.8%', responseTime: '150ms' },
-  { name: 'Recommendation Service', status: 'warning', uptime: '98.5%', responseTime: '250ms' },
-  { name: 'Community Service', status: 'healthy', uptime: '99.7%', responseTime: '180ms' },
-  { name: 'Gateway Service', status: 'healthy', uptime: '99.9%', responseTime: '80ms' },
-];
-
-const mockRecentErrors = [
-  { time: '2분 전', service: 'Recommendation', error: 'Connection timeout', level: 'warning' },
-  { time: '15분 전', service: 'Place', error: 'Database slow query', level: 'info' },
-  { time: '1시간 전', service: 'User', error: 'Rate limit exceeded', level: 'warning' },
-];
+import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics } from '../../services/adminService';
 
 interface StatCardProps {
   title: string;
@@ -160,7 +101,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, color }) =>
         </Typography>
       </Box>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
-        {value}%
+        {value.toFixed(1)}%
       </Typography>
       <LinearProgress
         variant="determinate"
@@ -175,6 +116,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, color }) =>
 const DashboardPage: React.FC = () => {
   const [refreshTime, setRefreshTime] = useState<Date>(new Date());
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -182,8 +124,12 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getDashboardStats();
-      setStats(data);
+      const [statsData, metricsData] = await Promise.all([
+        getDashboardStats(),
+        getSystemMetrics(),
+      ]);
+      setStats(statsData);
+      setMetrics(metricsData);
       setRefreshTime(new Date());
     } catch (err: any) {
       console.error('통계 로드 실패:', err);
@@ -270,7 +216,7 @@ const DashboardPage: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
             title="CPU 사용률"
-            value={mockSystemMetrics.cpu}
+            value={metrics?.cpuUsage || 0}
             icon={<Speed />}
             color="primary"
           />
@@ -278,7 +224,7 @@ const DashboardPage: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
             title="메모리 사용률"
-            value={mockSystemMetrics.memory}
+            value={metrics?.memoryUsage || 0}
             icon={<Memory />}
             color="success"
           />
@@ -286,148 +232,25 @@ const DashboardPage: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
             title="디스크 사용률"
-            value={mockSystemMetrics.disk}
+            value={metrics?.diskUsage || 0}
             icon={<Storage />}
             color="info"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
-            title="네트워크 사용률"
-            value={mockSystemMetrics.network}
-            icon={<Speed />}
-            color="warning"
-          />
-        </Grid>
-      </Grid>
-
-      {/* 트래픽 차트 */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom fontWeight="bold">
-              API 요청 추이
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={mockTrafficData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="requests"
-                  stroke="#8884d8"
-                  fill="#8884d8"
-                  name="요청 수"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="errors"
-                  stroke="#ff7300"
-                  fill="#ff7300"
-                  name="에러 수"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom fontWeight="bold">
-              서비스별 응답 시간
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockResponseTimeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="user" stroke="#8884d8" name="User" />
-                <Line type="monotone" dataKey="place" stroke="#82ca9d" name="Place" />
-                <Line type="monotone" dataKey="community" stroke="#ffc658" name="Community" />
-                <Line type="monotone" dataKey="recommendation" stroke="#ff7300" name="Recommendation" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* 서비스 상태 */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom fontWeight="bold">
-              서비스 상태
-            </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>서비스</TableCell>
-                    <TableCell>상태</TableCell>
-                    <TableCell>가동률</TableCell>
-                    <TableCell>평균 응답시간</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {mockServiceStatus.map((service) => (
-                    <TableRow key={service.name}>
-                      <TableCell>{service.name}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={service.status === 'healthy' ? '정상' : '경고'}
-                          color={service.status === 'healthy' ? 'success' : 'warning'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{service.uptime}</TableCell>
-                      <TableCell>{service.responseTime}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom fontWeight="bold">
-              최근 에러
-            </Typography>
-            <Box>
-              {mockRecentErrors.map((error, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    mb: 2,
-                    pb: 2,
-                    borderBottom: index < mockRecentErrors.length - 1 ? '1px solid #eee' : 'none',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="body2" fontWeight="bold">
-                      {error.service}
-                    </Typography>
-                    <Chip
-                      label={error.level}
-                      size="small"
-                      color={error.level === 'warning' ? 'warning' : 'info'}
-                    />
-                  </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    {error.error}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {error.time}
-                  </Typography>
-                </Box>
-              ))}
+          <Paper sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Speed sx={{ color: 'warning.main', mr: 1 }} />
+              <Typography variant="body2" color="text.secondary">
+                시스템 부하
+              </Typography>
             </Box>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              {metrics?.systemLoadAverage.toFixed(2) || '0.00'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              프로세서: {metrics?.availableProcessors || 0}개
+            </Typography>
           </Paper>
         </Grid>
       </Grid>
