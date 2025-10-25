@@ -384,7 +384,7 @@ const DashboardPage: React.FC = () => {
                         크기: {(db.databaseSize / (1024 * 1024)).toFixed(2)} MB
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        테이블: {db.tableCount}개
+                        테이블: {db.tableCount}개 {db.tableCount === 0 && '(초기화 대기 중)'}
                       </Typography>
                     </>
                   )}
