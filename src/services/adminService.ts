@@ -232,6 +232,60 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
   }
 };
 
+// 시스템 로그
+export interface SystemLog {
+  id: string;
+  timestamp: string;
+  level: string;
+  service: string;
+  message: string;
+  userId: string | null;
+}
+
+// 시스템 로그 조회
+export const getSystemLogs = async (
+  limit: number = 100,
+  service?: string,
+  level?: string
+): Promise<SystemLog[]> => {
+  try {
+    const params: any = { limit };
+    if (service && service !== 'all') params.service = service;
+    if (level && level !== 'all') params.level = level;
+    
+    const response = await api.get('/api/user/admin/logs', { params });
+    return response.data.data || response.data || [];
+  } catch (error) {
+    console.error('시스템 로그 조회 실패:', error);
+    return [];
+  }
+};
+
+// 데이터베이스 메트릭
+export interface DatabaseMetrics {
+  databaseName: string;
+  type: string; // mysql, postgresql, redis
+  status: string;
+  connections: number;
+  maxConnections: number;
+  connectionUsage: number;
+  databaseSize: number;
+  tableCount: number;
+  version: string;
+  uptime: string;
+}
+
+// 데이터베이스 메트릭 조회
+export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
+  try {
+    const response = await api.get('/api/user/admin/databases/metrics');
+    return response.data.data || response.data || [];
+  } catch (error) {
+    console.error('데이터베이스 메트릭 조회 실패:', error);
+    return [];
+  }
+};
+
 // === 커뮤니티 관리 API ===
 
 // 커뮤니티 통계 조회

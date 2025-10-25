@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -18,24 +18,12 @@ import {
   FormControl,
   InputLabel,
   Grid,
+  CircularProgress,
+  Alert,
+  Button,
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
-
-// Mock 데이터
-const mockLogs = Array.from({ length: 100 }, (_, i) => ({
-  id: `log-${i + 1}`,
-  timestamp: new Date(Date.now() - i * 3600000).toISOString(),
-  level: ['INFO', 'WARNING', 'ERROR', 'DEBUG'][i % 4],
-  service: ['User', 'Place', 'Community', 'Recommendation', 'Gateway'][i % 5],
-  message: [
-    'User login successful',
-    'Database connection timeout',
-    'API request processed',
-    'Cache miss for key: places:123',
-    'Rate limit exceeded for IP: 192.168.1.1',
-  ][i % 5],
-  userId: i % 3 === 0 ? `user-${i}` : null,
-}));
+import { Search, Refresh } from '@mui/icons-material';
+import { getSystemLogs, SystemLog } from '../../services/adminService';
 
 const LogsPage: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -43,14 +31,33 @@ const LogsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
+  const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredLogs = mockLogs.filter((log) => {
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getSystemLogs(500, serviceFilter, levelFilter);
+      setLogs(data);
+    } catch (err: any) {
+      console.error('로그 로드 실패:', err);
+      setError('로그를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLogs();
+  }, [levelFilter, serviceFilter]);
+
+  const filteredLogs = logs.filter((log) => {
     const matchesSearch =
       log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.service.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLevel = levelFilter === 'all' || log.level === levelFilter;
-    const matchesService = serviceFilter === 'all' || log.service === serviceFilter;
-    return matchesSearch && matchesLevel && matchesService;
+    return matchesSearch;
   });
 
   const handleChangePage = (_event: unknown, newPage: number) => {
@@ -77,11 +84,35 @@ const LogsPage: React.FC = () => {
     }
   };
 
+  if (loading && logs.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        시스템 로그
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" fontWeight="bold">
+          시스템 로그
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={loadLogs}
+          disabled={loading}
+        >
+          새로고침
+        </Button>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
       {/* 필터 */}
       <Paper sx={{ p: 2, mb: 3 }}>

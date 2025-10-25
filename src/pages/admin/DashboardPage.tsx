@@ -19,7 +19,7 @@ import {
   Memory,
   Storage,
 } from '@mui/icons-material';
-import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics, getServicesMetrics, ServiceMetrics } from '../../services/adminService';
+import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics, getServicesMetrics, ServiceMetrics, getDatabaseMetrics, DatabaseMetrics } from '../../services/adminService';
 
 interface StatCardProps {
   title: string;
@@ -152,6 +152,7 @@ const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [servicesMetrics, setServicesMetrics] = useState<ServiceMetrics[]>([]);
+  const [databaseMetrics, setDatabaseMetrics] = useState<DatabaseMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -159,14 +160,16 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [statsData, metricsData, servicesData] = await Promise.all([
+      const [statsData, metricsData, servicesData, databaseData] = await Promise.all([
         getDashboardStats(),
         getSystemMetrics(),
         getServicesMetrics(),
+        getDatabaseMetrics(),
       ]);
       setStats(statsData);
       setMetrics(metricsData);
       setServicesMetrics(servicesData);
+      setDatabaseMetrics(databaseData);
       setRefreshTime(new Date());
     } catch (err: any) {
       console.error('통계 로드 실패:', err);
@@ -322,6 +325,80 @@ const DashboardPage: React.FC = () => {
             </Typography>
           </Paper>
         </Grid>
+      </Grid>
+
+      {/* 데이터베이스 리소스 */}
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+        데이터베이스 리소스
+      </Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {databaseMetrics.map((db) => (
+          <Grid item xs={12} md={6} lg={4} key={db.databaseName}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" fontWeight="bold">
+                    {db.databaseName}
+                  </Typography>
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 1,
+                      bgcolor: db.status === 'running' ? 'success.light' : 'error.light',
+                      color: db.status === 'running' ? 'success.dark' : 'error.dark',
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight="bold">
+                      {db.status === 'running' ? '실행 중' : db.status}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* 연결 사용률 */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      연결 수
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {db.connections} / {db.maxConnections}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(db.connectionUsage, 100)}
+                    color={db.connectionUsage < 50 ? 'success' : db.connectionUsage < 80 ? 'warning' : 'error'}
+                    sx={{ height: 6, borderRadius: 1 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    사용률: {db.connectionUsage.toFixed(1)}%
+                  </Typography>
+                </Box>
+
+                {/* 추가 정보 */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {db.type !== 'redis' && (
+                    <>
+                      <Typography variant="caption" color="text.secondary">
+                        크기: {(db.databaseSize / (1024 * 1024)).toFixed(2)} MB
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        테이블: {db.tableCount}개
+                      </Typography>
+                    </>
+                  )}
+                  <Typography variant="caption" color="text.secondary">
+                    버전: {db.version}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    가동시간: {db.uptime}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {/* 서비스별 리소스 */}
