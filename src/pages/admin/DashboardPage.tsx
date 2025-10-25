@@ -14,6 +14,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -37,23 +39,14 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { getDashboardStats, DashboardStats } from '../../services/adminService';
 
-// Mock 데이터 (실제로는 API에서 가져옴)
+// Mock 데이터 (시스템 메트릭은 실제 모니터링 시스템 필요)
 const mockSystemMetrics = {
   cpu: 45,
   memory: 68,
   disk: 52,
   network: 34,
-};
-
-const mockStats = {
-  totalUsers: 1234,
-  activeUsers: 456,
-  totalPlaces: 5678,
-  totalPosts: 9012,
-  usersChange: 12.5,
-  placesChange: -3.2,
-  postsChange: 8.7,
 };
 
 const mockTrafficData = [
@@ -182,16 +175,43 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, color }) =>
 
 const DashboardPage: React.FC = () => {
   const [refreshTime, setRefreshTime] = useState<Date>(new Date());
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getDashboardStats();
+      setStats(data);
+      setRefreshTime(new Date());
+    } catch (err: any) {
+      console.error('통계 로드 실패:', err);
+      setError('통계를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
+    loadStats();
+    
     // 30초마다 자동 새로고침
     const interval = setInterval(() => {
-      setRefreshTime(new Date());
-      // 실제로는 여기서 API 호출
+      loadStats();
     }, 30000);
 
     return () => clearInterval(interval);
   }, []);
+
+  if (loading && !stats) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -204,39 +224,42 @@ const DashboardPage: React.FC = () => {
         </Typography>
       </Box>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       {/* 주요 통계 */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="총 사용자"
-            value={mockStats.totalUsers.toLocaleString()}
-            change={mockStats.usersChange}
+            value={stats?.totalUsers.toLocaleString() || '0'}
             icon={<People />}
             color="primary"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="활성 사용자"
-            value={mockStats.activeUsers.toLocaleString()}
+            title="정상 사용자"
+            value={stats?.activeUsers.toLocaleString() || '0'}
             icon={<People />}
             color="success"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="등록된 장소"
-            value={mockStats.totalPlaces.toLocaleString()}
-            change={mockStats.placesChange}
-            icon={<Place />}
-            color="info"
+            title="차단된 사용자"
+            value={stats?.inactiveUsers.toLocaleString() || '0'}
+            icon={<People />}
+            color="error"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="커뮤니티 글"
-            value={mockStats.totalPosts.toLocaleString()}
-            change={mockStats.postsChange}
+            value={stats?.totalPosts.toLocaleString() || '0'}
             icon={<Forum />}
             color="warning"
           />

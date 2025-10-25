@@ -111,7 +111,7 @@ const UsersPage: React.FC = () => {
   const handleBlockUser = async (userId: number, currentStatus: boolean) => {
     try {
       await updateUserStatus(userId, !currentStatus);
-      alert(currentStatus ? '사용자가 비활성화되었습니다.' : '사용자가 활성화되었습니다.');
+      alert(currentStatus ? '사용자가 차단되었습니다.' : '사용자 차단이 해제되었습니다.');
       loadUsers();
     } catch (err) {
       alert('상태 변경에 실패했습니다.');
@@ -229,7 +229,7 @@ const UsersPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={user.enabled ? '활성' : '비활성'}
+                            label={user.enabled ? '정상' : '차단됨'}
                             color={user.enabled ? 'success' : 'error'}
                             size="small"
                             icon={user.enabled ? <CheckCircle /> : <Block />}
@@ -259,7 +259,7 @@ const UsersPage: React.FC = () => {
                             size="small"
                             color={user.enabled ? 'error' : 'success'}
                             onClick={() => handleBlockUser(user.id, user.enabled)}
-                            title={user.enabled ? '비활성화' : '활성화'}
+                            title={user.enabled ? '차단' : '차단 해제'}
                           >
                             <Block />
                           </IconButton>
@@ -361,7 +361,7 @@ const UsersPage: React.FC = () => {
               </Grid>
               <Grid item xs={8}>
                 <Chip
-                  label={selectedUser.enabled ? '활성' : '비활성'}
+                  label={selectedUser.enabled ? '정상' : '차단됨'}
                   color={selectedUser.enabled ? 'success' : 'error'}
                   size="small"
                 />

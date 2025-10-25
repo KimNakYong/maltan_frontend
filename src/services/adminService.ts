@@ -85,14 +85,63 @@ export const deleteUser = async (userId: number): Promise<void> => {
   await api.delete(`/api/user/admin/users/${userId}`);
 };
 
+// 커뮤니티 게시글 삭제
+export const deleteCommunityPost = async (postId: number): Promise<void> => {
+  // 관리자는 userId 없이 삭제 가능하도록 임시 처리
+  // TODO: 백엔드에서 관리자 권한 체크 후 userId 없이도 삭제 가능하도록 수정 필요
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const userId = user?.id || 1; // 임시: 관리자 ID
+  
+  await api.delete(`/api/community/posts/${postId}?userId=${userId}`);
+};
+
 // 사용자 통계 조회
 export const getUserStats = async (): Promise<UserStats> => {
   const response = await api.get('/api/user/admin/stats');
   return response.data.data;
 };
 
+// 대시보드 통계 조회
+export interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalPosts: number;
+  adminUsers: number;
+  inactiveUsers: number;
+}
+
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  try {
+    const userStatsResponse = await api.get('/api/user/admin/stats');
+    const userStats = userStatsResponse.data.data || userStatsResponse.data;
+    
+    // 커뮤니티 게시글 수 조회
+    const postsResponse = await api.get('/api/community/posts?page=0&size=1');
+    const totalPosts = postsResponse.data.totalElements || 0;
+    
+    return {
+      totalUsers: userStats.totalUsers || 0,
+      activeUsers: userStats.activeUsers || 0,
+      totalPosts: totalPosts,
+      adminUsers: userStats.adminUsers || 0,
+      inactiveUsers: userStats.inactiveUsers || 0,
+    };
+  } catch (error) {
+    console.error('대시보드 통계 조회 실패:', error);
+    // 에러 시 기본값 반환
+    return {
+      totalUsers: 0,
+      activeUsers: 0,
+      totalPosts: 0,
+      adminUsers: 0,
+      inactiveUsers: 0,
+    };
+  }
+};
+
 // === 커뮤니티 관리 API ===
 // (기존 communityService.ts의 API를 재사용)
 
-export { getPosts, getPost, deletePost as deleteCommunityPost } from './communityService';
+export { getPosts, getPost } from './communityService';
 
