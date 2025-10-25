@@ -19,7 +19,8 @@ export interface PreferredRegion {
 export interface RegisterRequest {
   email: string;
   password: string;
-  username: string;
+  name: string;
+  username?: string; // 선택사항 (없으면 email 사용)
   phone?: string;
   preferredRegions: PreferredRegion[];
 }
@@ -33,6 +34,7 @@ export interface AuthResponse {
 export interface User {
   id: string;
   email: string;
+  name: string;
   username: string;
   phone?: string;
   preferredRegions?: PreferredRegion[];
