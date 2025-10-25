@@ -230,7 +230,10 @@ const CommunityWritePage: React.FC = () => {
       navigate(`/community/${post.id}`);
     } catch (err: any) {
       console.error(`게시글 ${isEditMode ? '수정' : '작성'} 실패:`, err);
-      setError(err.response?.data?.message || `게시글 ${isEditMode ? '수정' : '작성'}에 실패했습니다.`);
+      console.error('에러 응답:', err.response?.data);
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || `게시글 ${isEditMode ? '수정' : '작성'}에 실패했습니다.`;
+      setError(errorMsg);
+      alert(errorMsg); // 임시: 에러 메시지 확인용
     } finally {
       setLoading(false);
     }
