@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, Button, Card, CardContent, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Paper, Grid, Button, Card, CardContent, CircularProgress, Alert, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { getMyPreferredRegions, PreferredRegion } from '../services/userService';
 import { getCoordinatesByDistrict, DEFAULT_COORDINATE } from '../utils/regionCoordinates';
+import { PLACE_CATEGORIES } from '../utils/placeCategories';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_COORDINATE);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // 선호 지역 정보 가져오기
   useEffect(() => {
@@ -191,36 +193,85 @@ const HomePage: React.FC = () => {
         </Paper>
       )}
 
+      {/* 주변장소 카테고리 */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h5" fontWeight="bold" gutterBottom>
+          주변 장소 탐색
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          관심있는 카테고리를 선택하여 주변 장소를 찾아보세요
+        </Typography>
+        
+        <Grid container spacing={2}>
+          {PLACE_CATEGORIES.map((category) => (
+            <Grid item xs={12} sm={6} md={2.4} key={category.code}>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  border: selectedCategory === category.code ? '2px solid' : '1px solid',
+                  borderColor: selectedCategory === category.code ? 'primary.main' : 'divider',
+                  bgcolor: selectedCategory === category.code ? 'primary.light' : 'background.paper',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
+                  },
+                }}
+                onClick={() => setSelectedCategory(category.code)}
+              >
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <Box sx={{ fontSize: 40, mb: 1, color: selectedCategory === category.code ? 'primary.main' : 'text.secondary' }}>
+                    {category.icon}
+                  </Box>
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>
+                    {category.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {category.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+        
+        {selectedCategory && (
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Chip
+              label={`선택된 카테고리: ${PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name}`}
+              onDelete={() => setSelectedCategory(null)}
+              color="primary"
+              sx={{ mr: 2 }}
+            />
+            <Button
+              variant="contained"
+              onClick={() => {
+                // TODO: 장소 목록 페이지로 이동 (카테고리 파라미터 전달)
+                alert(`${PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name} 카테고리 장소 검색 (개발 예정)`);
+              }}
+            >
+              이 카테고리 장소 보기
+            </Button>
+          </Box>
+        )}
+      </Paper>
+
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, textAlign: 'center', height: '100%' }}>
             <Typography variant="h5" gutterBottom fontWeight="bold">
-              🍽️ 맛집 탐색
+              🗺️ 주변 장소
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              우리 동네 숨은 맛집을 찾아보세요
+              내 관심 지역의 다양한 장소를 찾아보세요
             </Typography>
             <Button variant="contained" fullWidth>
-              맛집 보기
+              장소 탐색하기
             </Button>
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, textAlign: 'center', height: '100%' }}>
-            <Typography variant="h5" gutterBottom fontWeight="bold">
-              🗺️ 관광지
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              주변 가볼만한 곳을 추천해드려요
-            </Typography>
-            <Button variant="contained" fullWidth>
-              관광지 보기
-            </Button>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3, textAlign: 'center', height: '100%' }}>
             <Typography variant="h5" gutterBottom fontWeight="bold">
               💬 커뮤니티
