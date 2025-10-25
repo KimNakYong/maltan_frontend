@@ -12,6 +12,8 @@ interface GoogleMapProps {
     onClick?: () => void;
   }>;
   onMapClick?: (lat: number, lng: number) => void;
+  onMapLoad?: (map: google.maps.Map) => void;
+  onBoundsChanged?: (map: google.maps.Map) => void;
   style?: React.CSSProperties;
 }
 
@@ -20,6 +22,8 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
   zoom = MAP.DEFAULT_ZOOM,
   markers = [],
   onMapClick,
+  onMapLoad,
+  onBoundsChanged,
   style = { width: '100%', height: '500px' },
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -89,12 +93,31 @@ const GoogleMap: React.FC<GoogleMapProps> = ({
         });
       }
 
+      // 지도 범위 변경 이벤트 (이동, 확대/축소)
+      if (onBoundsChanged) {
+        let boundsChangedTimeout: NodeJS.Timeout;
+        newMap.addListener('bounds_changed', () => {
+          // 디바운스: 0.5초 후에 실행 (너무 자주 호출되는 것 방지)
+          clearTimeout(boundsChangedTimeout);
+          boundsChangedTimeout = setTimeout(() => {
+            onBoundsChanged(newMap);
+          }, 500);
+        });
+      }
+
       setMap(newMap);
+
+      // 지도 로드 완료 콜백
+      if (onMapLoad) {
+        google.maps.event.addListenerOnce(newMap, 'idle', () => {
+          onMapLoad(newMap);
+        });
+      }
     } catch (err) {
       setError('지도를 초기화할 수 없습니다.');
       console.error('Map initialization error:', err);
     }
-  }, [loading, center, zoom, onMapClick, map]);
+  }, [loading, center, zoom, onMapClick, onMapLoad, onBoundsChanged, map]);
 
   // 마커 업데이트
   useEffect(() => {

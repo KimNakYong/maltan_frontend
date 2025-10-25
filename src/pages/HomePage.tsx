@@ -26,7 +26,7 @@ const HomePage: React.FC = () => {
     position: { lat: number; lng: number };
     title: string;
   }>>([]);
-  const [radius, setRadius] = useState(3.0); // 기본 3km
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   // 선호 지역 정보 가져오기
   useEffect(() => {
@@ -69,14 +69,33 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // 주변 장소 로드
-  const loadNearbyPlaces = async (lat: number, lng: number, categoryCode?: string) => {
+  // 지도 범위 기반 장소 로드
+  const loadPlacesInBounds = async (bounds: google.maps.LatLngBounds, categoryCode?: string) => {
     setLoadingPlaces(true);
     try {
-      const nearbyPlaces = await getNearbyPlaces(lat, lng, radius);
+      // 지도 중심점과 반경 계산
+      const center = bounds.getCenter();
+      const ne = bounds.getNorthEast();
       
-      // API 응답 확인
-      console.log('API 응답:', nearbyPlaces);
+      // 대각선 거리를 반경으로 사용 (km 단위)
+      const radius = google.maps.geometry.spherical.computeDistanceBetween(
+        new google.maps.LatLng(center.lat(), center.lng()),
+        new google.maps.LatLng(ne.lat(), ne.lng())
+      ) / 1000;
+      
+      // 카테고리 코드를 ID로 변환
+      const categoryId = categoryCode 
+        ? PLACE_CATEGORIES.find(c => c.code === categoryCode)?.id 
+        : undefined;
+      
+      console.log('지도 범위 기반 검색:', { 
+        center: { lat: center.lat(), lng: center.lng() }, 
+        radius,
+        categoryCode,
+        categoryId 
+      });
+      
+      const nearbyPlaces = await getNearbyPlaces(center.lat(), center.lng(), radius, categoryId);
       
       // 배열인지 확인
       if (!Array.isArray(nearbyPlaces)) {
@@ -86,16 +105,47 @@ const HomePage: React.FC = () => {
         return;
       }
       
-      // 카테고리 필터링 (프론트엔드에서)
+      setPlaces(nearbyPlaces);
+      
+      // 마커 생성
+      const newMarkers = nearbyPlaces.map((place) => ({
+        id: place.id.toString(),
+        position: {
+          lat: place.latitude,
+          lng: place.longitude,
+        },
+        title: place.name,
+      }));
+      setMarkers(newMarkers);
+    } catch (err: any) {
+      console.error('주변 장소 로드 실패:', err);
+      setPlaces([]);
+      setMarkers([]);
+    } finally {
+      setLoadingPlaces(false);
+    }
+  };
+
+  // 초기 장소 로드 (선호 지역 기반)
+  const loadNearbyPlaces = async (lat: number, lng: number, categoryCode?: string) => {
+    setLoadingPlaces(true);
+    try {
+      const nearbyPlaces = await getNearbyPlaces(lat, lng, 3); // 기본 3km
+      
+      if (!Array.isArray(nearbyPlaces)) {
+        console.error('API 응답이 배열이 아닙니다:', nearbyPlaces);
+        setPlaces([]);
+        setMarkers([]);
+        return;
+      }
+      
       let filteredPlaces = nearbyPlaces;
       if (categoryCode) {
-        // TODO: 백엔드 카테고리 ID 매핑 필요
         filteredPlaces = nearbyPlaces;
       }
       
       setPlaces(filteredPlaces);
       
-      // 마커 생성
       const newMarkers = filteredPlaces.map((place) => ({
         id: place.id.toString(),
         position: {
@@ -161,83 +211,18 @@ const HomePage: React.FC = () => {
               내 관심 지역 주변 장소
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                반경:
-              </Typography>
-              <Button
-                size="small"
-                variant={radius === 1 ? 'contained' : 'outlined'}
-                onClick={async () => {
-                  setRadius(1);
-                  setLoadingPlaces(true);
-                  try {
-                    const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 1);
-                    if (Array.isArray(nearbyPlaces)) {
-                      setPlaces(nearbyPlaces);
-                    } else {
-                      setPlaces([]);
-                    }
-                  } catch (err) {
-                    console.error('장소 로드 실패:', err);
-                    setPlaces([]);
-                  } finally {
-                    setLoadingPlaces(false);
-                  }
-                }}
-              >
-                1km
-              </Button>
-              <Button
-                size="small"
-                variant={radius === 3 ? 'contained' : 'outlined'}
-                onClick={async () => {
-                  setRadius(3);
-                  setLoadingPlaces(true);
-                  try {
-                    const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 3);
-                    if (Array.isArray(nearbyPlaces)) {
-                      setPlaces(nearbyPlaces);
-                    } else {
-                      setPlaces([]);
-                    }
-                  } catch (err) {
-                    console.error('장소 로드 실패:', err);
-                    setPlaces([]);
-                  } finally {
-                    setLoadingPlaces(false);
-                  }
-                }}
-              >
-                3km
-              </Button>
-              <Button
-                size="small"
-                variant={radius === 5 ? 'contained' : 'outlined'}
-                onClick={async () => {
-                  setRadius(5);
-                  setLoadingPlaces(true);
-                  try {
-                    const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 5);
-                    if (Array.isArray(nearbyPlaces)) {
-                      setPlaces(nearbyPlaces);
-                    } else {
-                      setPlaces([]);
-                    }
-                  } catch (err) {
-                    console.error('장소 로드 실패:', err);
-                    setPlaces([]);
-                  } finally {
-                    setLoadingPlaces(false);
-                  }
-                }}
-              >
-                5km
-              </Button>
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={<RefreshIcon />}
-                onClick={() => loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude, selectedCategory || undefined)}
+                onClick={() => {
+                  if (map) {
+                    const bounds = map.getBounds();
+                    if (bounds) {
+                      loadPlacesInBounds(bounds, selectedCategory || undefined);
+                    }
+                  }
+                }}
                 disabled={loadingPlaces}
               >
                 새로고침
@@ -265,9 +250,23 @@ const HomePage: React.FC = () => {
                   center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
                   zoom={14}
                   markers={markers}
+                  onMapLoad={(mapInstance: google.maps.Map) => {
+                    setMap(mapInstance);
+                    // 지도 로드 시 초기 장소 로드
+                    const bounds = mapInstance.getBounds();
+                    if (bounds) {
+                      loadPlacesInBounds(bounds, selectedCategory || undefined);
+                    }
+                  }}
+                  onBoundsChanged={(mapInstance: google.maps.Map) => {
+                    // 지도 이동/확대/축소 시 장소 로드
+                    const bounds = mapInstance.getBounds();
+                    if (bounds) {
+                      loadPlacesInBounds(bounds, selectedCategory || undefined);
+                    }
+                  }}
                   onMapClick={(lat, lng) => {
                     setMapCenter({ latitude: lat, longitude: lng });
-                    loadNearbyPlaces(lat, lng, selectedCategory || undefined);
                   }}
                   style={{ width: '100%', height: '500px', borderRadius: '8px' }}
                 />
@@ -323,12 +322,14 @@ const HomePage: React.FC = () => {
                         sx={{ mt: 1 }}
                         onClick={() => {
                           const coordinate = getCoordinatesByDistrict(region.district);
-                          if (coordinate) {
+                          if (coordinate && map) {
+                            const newCenter = new google.maps.LatLng(coordinate.latitude, coordinate.longitude);
+                            map.panTo(newCenter);
+                            map.setZoom(14);
                             setMapCenter({
                               latitude: coordinate.latitude,
                               longitude: coordinate.longitude,
                             });
-                            loadNearbyPlaces(coordinate.latitude, coordinate.longitude, selectedCategory || undefined);
                           }
                         }}
                       >
@@ -342,12 +343,12 @@ const HomePage: React.FC = () => {
                 {!loadingPlaces && (!places || places.length === 0) && (
                   <Alert severity="info" sx={{ mt: 3 }}>
                     <Typography variant="body2" fontWeight="bold" gutterBottom>
-                      주변에 등록된 장소가 없습니다
+                      현재 지도 범위에 등록된 장소가 없습니다
                     </Typography>
                     <Typography variant="caption">
                       • 다른 관심 지역을 선택해보세요<br />
-                      • 지도를 클릭하여 다른 위치를 검색해보세요<br />
-                      • 검색 반경을 늘려보세요 (현재: {radius}km)
+                      • 지도를 이동하거나 축소하여 더 넓은 범위를 검색해보세요<br />
+                      • 카테고리 필터를 해제해보세요
                     </Typography>
                   </Alert>
                 )}
@@ -440,7 +441,12 @@ const HomePage: React.FC = () => {
                   }}
                   onClick={() => {
                     setSelectedCategory(category.code);
-                    loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude, category.code);
+                    if (map) {
+                      const bounds = map.getBounds();
+                      if (bounds) {
+                        loadPlacesInBounds(bounds, category.code);
+                      }
+                    }
                     // 지도 섹션으로 스크롤
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
@@ -467,7 +473,12 @@ const HomePage: React.FC = () => {
                 label={`선택된 카테고리: ${PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name}`}
                 onDelete={() => {
                   setSelectedCategory(null);
-                  loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude);
+                  if (map) {
+                    const bounds = map.getBounds();
+                    if (bounds) {
+                      loadPlacesInBounds(bounds);
+                    }
+                  }
                 }}
                 color="primary"
                 sx={{ mr: 2 }}

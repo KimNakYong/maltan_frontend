@@ -10,6 +10,7 @@ export interface PlaceCategory {
   name: string;
   icon: React.ReactElement;
   description: string;
+  id: number; // 백엔드 카테고리 ID
 }
 
 /**
@@ -26,30 +27,35 @@ export const PLACE_CATEGORIES: PlaceCategory[] = [
     name: '음식점',
     icon: <RestaurantIcon />,
     description: '레스토랑, 카페, 바 등 음식 관련 장소',
+    id: 1,
   },
   {
     code: 'TOURIST',
     name: '관광지',
     icon: <AttractionsIcon />,
     description: '명소, 박물관, 공원 등 관광 명소',
+    id: 2,
   },
   {
     code: 'ACCOMMODATION',
     name: '숙박',
     icon: <HotelIcon />,
     description: '호텔, 펜션, 게스트하우스 등 숙박 시설',
+    id: 3,
   },
   {
     code: 'SHOPPING',
     name: '쇼핑',
     icon: <ShoppingBagIcon />,
     description: '쇼핑몰, 시장, 상점 등 쇼핑 관련 장소',
+    id: 4,
   },
   {
     code: 'CULTURE',
     name: '문화',
     icon: <TheaterComedyIcon />,
     description: '극장, 갤러리, 문화센터 등 문화 시설',
+    id: 5,
   },
 ];
 
