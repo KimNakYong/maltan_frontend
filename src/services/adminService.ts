@@ -156,6 +156,17 @@ export interface SystemMetrics {
   systemLoadAverage: number;
 }
 
+// 서비스별 메트릭
+export interface ServiceMetrics {
+  serviceName: string;
+  status: string;
+  cpuUsage: number;
+  memoryUsage: number;
+  memoryLimit: number;
+  memoryUsed: number;
+  uptime: string;
+}
+
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const userStatsResponse = await api.get('/api/user/admin/stats');
@@ -206,6 +217,18 @@ export const getSystemMetrics = async (): Promise<SystemMetrics> => {
       availableProcessors: 0,
       systemLoadAverage: 0,
     };
+  }
+};
+
+// 서비스별 메트릭 조회
+export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
+  try {
+    const response = await api.get('/api/user/admin/services/metrics');
+    return response.data.data || response.data || [];
+  } catch (error) {
+    console.error('서비스 메트릭 조회 실패:', error);
+    // 에러 시 빈 배열 반환
+    return [];
   }
 };
 

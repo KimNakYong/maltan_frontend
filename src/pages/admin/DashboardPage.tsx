@@ -19,7 +19,7 @@ import {
   Memory,
   Storage,
 } from '@mui/icons-material';
-import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics } from '../../services/adminService';
+import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics, getServicesMetrics, ServiceMetrics } from '../../services/adminService';
 
 interface StatCardProps {
   title: string;
@@ -151,6 +151,7 @@ const DashboardPage: React.FC = () => {
   const [refreshTime, setRefreshTime] = useState<Date>(new Date());
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
+  const [servicesMetrics, setServicesMetrics] = useState<ServiceMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,12 +159,14 @@ const DashboardPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const [statsData, metricsData] = await Promise.all([
+      const [statsData, metricsData, servicesData] = await Promise.all([
         getDashboardStats(),
         getSystemMetrics(),
+        getServicesMetrics(),
       ]);
       setStats(statsData);
       setMetrics(metricsData);
+      setServicesMetrics(servicesData);
       setRefreshTime(new Date());
     } catch (err: any) {
       console.error('통계 로드 실패:', err);
@@ -259,7 +262,10 @@ const DashboardPage: React.FC = () => {
       </Grid>
 
       {/* 시스템 리소스 */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+        전체 시스템 리소스
+      </Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <MetricCard
             title="CPU 사용률"
@@ -316,6 +322,78 @@ const DashboardPage: React.FC = () => {
             </Typography>
           </Paper>
         </Grid>
+      </Grid>
+
+      {/* 서비스별 리소스 */}
+      <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+        서비스별 리소스 사용률
+      </Typography>
+      <Grid container spacing={3}>
+        {servicesMetrics.map((service) => (
+          <Grid item xs={12} md={6} lg={4} key={service.serviceName}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" fontWeight="bold">
+                    {service.serviceName}
+                  </Typography>
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 1,
+                      bgcolor: service.status === 'running' ? 'success.light' : 'error.light',
+                      color: service.status === 'running' ? 'success.dark' : 'error.dark',
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight="bold">
+                      {service.status === 'running' ? '실행 중' : service.status}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* CPU 사용률 */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      CPU
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {service.cpuUsage.toFixed(1)}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(service.cpuUsage, 100)}
+                    color={service.cpuUsage < 50 ? 'success' : service.cpuUsage < 80 ? 'warning' : 'error'}
+                    sx={{ height: 6, borderRadius: 1 }}
+                  />
+                </Box>
+
+                {/* 메모리 사용률 */}
+                <Box sx={{ mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      메모리
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {service.memoryUsage.toFixed(1)}%
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(service.memoryUsage, 100)}
+                    color={service.memoryUsage < 50 ? 'success' : service.memoryUsage < 80 ? 'warning' : 'error'}
+                    sx={{ height: 6, borderRadius: 1 }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {(service.memoryUsed / (1024 * 1024)).toFixed(0)} MB / {(service.memoryLimit / (1024 * 1024)).toFixed(0)} MB
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
     </Box>
   );
