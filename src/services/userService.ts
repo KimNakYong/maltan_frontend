@@ -47,16 +47,9 @@ export const getMyPreferredRegions = async (): Promise<PreferredRegionsResponse>
     });
     return response.data;
   } catch (error: any) {
-    // 임시로 더미 데이터 반환
+    console.error('선호 지역 조회 실패:', error);
     if (error.response?.status === 404) {
-      console.warn('User Service: /api/user/me/preferred-regions 엔드포인트에서 데이터를 찾을 수 없습니다.');
-      return {
-        preferredRegions: [
-          { priority: 1, city: "11", cityName: "서울특별시", district: "11680", districtName: "강남구" },
-          { priority: 2, city: "11", cityName: "서울특별시", district: "11740", districtName: "강동구" },
-          { priority: 3, city: "26", cityName: "부산광역시", district: "26440", districtName: "해운대구" },
-        ],
-      };
+      return { preferredRegions: [] };
     }
     throw error;
   }

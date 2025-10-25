@@ -71,7 +71,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {isAuthenticated ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ mr: 1 }}>
-                {user?.username}님
+                {user?.name || user?.username}님
               </Typography>
               <IconButton onClick={handleMenu} color="inherit" size="small">
                 {user?.profileImage ? (
