@@ -318,6 +318,40 @@ const CommunityDetailPage: React.FC = () => {
           {post.content}
         </Typography>
 
+        {/* 위치 정보 (Google Maps) */}
+        {post.latitude && post.longitude && (
+          <Box sx={{ mt: 3, mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Place color="primary" />
+              위치 정보
+            </Typography>
+            {post.address && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {post.address}
+              </Typography>
+            )}
+            <Box
+              sx={{
+                width: '100%',
+                height: 300,
+                borderRadius: 2,
+                overflow: 'hidden',
+                border: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <iframe
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                style={{ border: 0 }}
+                src={`https://www.google.com/maps?q=${post.latitude},${post.longitude}&hl=ko&z=16&output=embed`}
+                allowFullScreen
+              />
+            </Box>
+          </Box>
+        )}
+
         <Divider sx={{ my: 3 }} />
 
         {/* 추천/비추천 및 참여 버튼 */}

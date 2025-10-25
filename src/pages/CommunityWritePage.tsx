@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -15,11 +15,14 @@ import {
   FormControlLabel,
   Grid,
   Alert,
+  Autocomplete,
+  Chip,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ko } from 'date-fns/locale';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { createPost, CreatePostRequest } from '../services/communityService';
 
 const CommunityWritePage: React.FC = () => {
@@ -37,15 +40,59 @@ const CommunityWritePage: React.FC = () => {
     recruitmentDeadline: null as Date | null,
     eventDate: null as Date | null,
     eventLocation: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
+    address: '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [placeSearchInput, setPlaceSearchInput] = useState('');
+  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const placeInputRef = useRef<HTMLInputElement>(null);
 
   const categories = ['자유', '질문', '정보', '모임', '봉사', '운동', '취미'];
 
+  // Google Places Autocomplete 초기화
+  useEffect(() => {
+    if (!placeInputRef.current || !window.google) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(placeInputRef.current, {
+      componentRestrictions: { country: 'kr' }, // 한국으로 제한
+      fields: ['formatted_address', 'geometry', 'name', 'place_id'],
+    });
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (place.geometry && place.geometry.location) {
+        setSelectedPlace(place);
+        setFormData((prev) => ({
+          ...prev,
+          latitude: place.geometry!.location!.lat(),
+          longitude: place.geometry!.location!.lng(),
+          address: place.formatted_address || place.name || '',
+        }));
+        setPlaceSearchInput(place.name || place.formatted_address || '');
+      }
+    });
+
+    autocompleteRef.current = autocomplete;
+  }, []);
+
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleClearLocation = () => {
+    setSelectedPlace(null);
+    setPlaceSearchInput('');
+    setFormData((prev) => ({
+      ...prev,
+      latitude: null,
+      longitude: null,
+      address: '',
+    }));
   };
 
   const handleSubmit = async () => {
@@ -92,6 +139,13 @@ const CommunityWritePage: React.FC = () => {
         request.recruitmentDeadline = formData.recruitmentDeadline?.toISOString();
         request.eventDate = formData.eventDate?.toISOString();
         request.eventLocation = formData.eventLocation;
+      }
+
+      // 위치 정보 추가
+      if (formData.latitude && formData.longitude) {
+        request.latitude = formData.latitude;
+        request.longitude = formData.longitude;
+        request.address = formData.address;
       }
 
       const post = await createPost(request);
@@ -249,6 +303,38 @@ const CommunityWritePage: React.FC = () => {
               onChange={(e) => handleChange('content', e.target.value)}
               placeholder="내용을 입력하세요"
             />
+          </Grid>
+
+          {/* 장소 검색 (선택사항) */}
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+              장소 추가 (선택사항)
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+              추천하는 식당, 카페, 장소 등을 검색하여 지도에 표시할 수 있습니다.
+            </Typography>
+            <TextField
+              fullWidth
+              inputRef={placeInputRef}
+              label="장소 검색 (예: 스타벅스 강남점)"
+              value={placeSearchInput}
+              onChange={(e) => setPlaceSearchInput(e.target.value)}
+              placeholder="장소 이름이나 주소를 입력하세요"
+              InputProps={{
+                startAdornment: <LocationOnIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+            />
+            {selectedPlace && formData.address && (
+              <Box sx={{ mt: 1 }}>
+                <Chip
+                  icon={<LocationOnIcon />}
+                  label={formData.address}
+                  onDelete={handleClearLocation}
+                  color="primary"
+                  variant="outlined"
+                />
+              </Box>
+            )}
           </Grid>
 
           {/* 버튼 */}

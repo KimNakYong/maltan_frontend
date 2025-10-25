@@ -20,6 +20,9 @@ export interface Post {
   recruitmentDeadline?: string;
   eventDate?: string;
   eventLocation?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
   viewCount: number;
   likeCount: number;
   dislikeCount: number;
@@ -88,6 +91,9 @@ export interface CreatePostRequest {
   recruitmentDeadline?: string;
   eventDate?: string;
   eventLocation?: string;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
   imageUrls?: string[];
 }
 
