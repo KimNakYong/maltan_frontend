@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { getServicesMetrics, ServiceMetrics } from '../../services/adminService';
+import { formatTime } from '../../utils/dateUtils';
 
 const ServicesPage: React.FC = () => {
   const [refreshTime, setRefreshTime] = useState<Date>(new Date());
@@ -82,7 +83,7 @@ const ServicesPage: React.FC = () => {
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            마지막 업데이트: {refreshTime.toLocaleTimeString()} (10초마다 자동 갱신)
+            마지막 업데이트: {formatTime(refreshTime)} (10초마다 자동 갱신)
           </Typography>
           <Button
             variant="outlined"

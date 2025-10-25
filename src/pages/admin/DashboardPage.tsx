@@ -20,6 +20,7 @@ import {
   Storage,
 } from '@mui/icons-material';
 import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics } from '../../services/adminService';
+import { formatTime } from '../../utils/dateUtils';
 
 interface StatCardProps {
   title: string;
@@ -220,7 +221,7 @@ const DashboardPage: React.FC = () => {
           />
         </Box>
         <Typography variant="body2" color="text.secondary">
-          마지막 업데이트: {refreshTime.toLocaleTimeString()} (10초마다 자동 갱신)
+          마지막 업데이트: {formatTime(refreshTime)} (10초마다 자동 갱신)
         </Typography>
       </Box>
 

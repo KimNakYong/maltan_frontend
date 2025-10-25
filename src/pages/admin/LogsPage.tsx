@@ -21,9 +21,11 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Tooltip,
 } from '@mui/material';
 import { Search, Refresh } from '@mui/icons-material';
 import { getSystemLogs, SystemLog } from '../../services/adminService';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const LogsPage: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -174,11 +176,11 @@ const LogsPage: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>시간</TableCell>
-                <TableCell>레벨</TableCell>
-                <TableCell>서비스</TableCell>
+                <TableCell sx={{ width: '180px' }}>시간</TableCell>
+                <TableCell sx={{ width: '100px' }}>레벨</TableCell>
+                <TableCell sx={{ width: '120px' }}>서비스</TableCell>
                 <TableCell>메시지</TableCell>
-                <TableCell>사용자 ID</TableCell>
+                <TableCell sx={{ width: '100px' }}>사용자 ID</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -186,8 +188,8 @@ const LogsPage: React.FC = () => {
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((log) => (
                   <TableRow key={log.id} hover>
-                    <TableCell>
-                      {new Date(log.timestamp).toLocaleString()}
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {formatDateTime(log.timestamp)}
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -199,7 +201,25 @@ const LogsPage: React.FC = () => {
                     <TableCell>
                       <Chip label={log.service} size="small" variant="outlined" />
                     </TableCell>
-                    <TableCell>{log.message}</TableCell>
+                    <TableCell>
+                      <Tooltip title={log.message} arrow placement="top">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            maxWidth: '600px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2, // 최대 2줄까지 표시
+                            WebkitBoxOrient: 'vertical',
+                            wordBreak: 'break-word', // 긴 단어는 줄바꿈
+                            cursor: 'help',
+                          }}
+                        >
+                          {log.message}
+                        </Typography>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell>{log.userId || '-'}</TableCell>
                   </TableRow>
                 ))}

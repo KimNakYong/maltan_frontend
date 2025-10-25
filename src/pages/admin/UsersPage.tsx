@@ -38,6 +38,7 @@ import {
   deleteUser,
   AdminUser,
 } from '../../services/adminService';
+import { formatShortDate, formatDateTime } from '../../utils/dateUtils';
 
 const UsersPage: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -215,7 +216,7 @@ const UsersPage: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          {new Date(user.createdAt).toLocaleDateString('ko-KR')}
+                          {formatShortDate(user.createdAt)}
                         </TableCell>
                         <TableCell align="center">
                           <IconButton
@@ -353,7 +354,7 @@ const UsersPage: React.FC = () => {
               </Grid>
               <Grid item xs={8}>
                 <Typography variant="body1">
-                  {new Date(selectedUser.createdAt).toLocaleString('ko-KR')}
+                  {formatDateTime(selectedUser.createdAt)}
                 </Typography>
               </Grid>
               <Grid item xs={4}>
@@ -363,7 +364,7 @@ const UsersPage: React.FC = () => {
               </Grid>
               <Grid item xs={8}>
                 <Typography variant="body1">
-                  {new Date(selectedUser.updatedAt).toLocaleString('ko-KR')}
+                  {formatDateTime(selectedUser.updatedAt)}
                 </Typography>
               </Grid>
             </Grid>

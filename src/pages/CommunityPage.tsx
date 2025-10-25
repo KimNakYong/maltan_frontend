@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { getPosts, Post, PostListParams } from '../services/communityService';
 import { useAppSelector } from '../store/hooks';
+import { formatRelativeDate } from '../utils/dateUtils';
 
 const CommunityPage: React.FC = () => {
   const navigate = useNavigate();
@@ -116,17 +117,6 @@ const CommunityPage: React.FC = () => {
     navigate(`/community/${postId}`);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    
-    if (hours < 1) return '방금 전';
-    if (hours < 24) return `${hours}시간 전`;
-    if (hours < 48) return '어제';
-    return date.toLocaleDateString('ko-KR');
-  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -314,7 +304,7 @@ const CommunityPage: React.FC = () => {
                       •
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {formatDate(post.createdAt)}
+                      {formatRelativeDate(post.createdAt)}
                     </Typography>
                   </Box>
 

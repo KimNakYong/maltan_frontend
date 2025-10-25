@@ -41,6 +41,7 @@ import {
   toggleParticipation,
 } from '../services/communityService';
 import { useAppSelector } from '../store/hooks';
+import { formatDate } from '../utils/dateUtils';
 
 const CommunityDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -200,18 +201,6 @@ const CommunityDetailPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '날짜 없음';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '잘못된 날짜';
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   if (loading) {
     return (
