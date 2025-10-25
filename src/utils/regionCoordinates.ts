@@ -76,9 +76,67 @@ export const regionCoordinates: RegionCoordinate[] = [
   ...incheonDistricts,
 ];
 
-// 지역 코드로 좌표 찾기
+// 영문 코드 -> 숫자 코드 매핑
+const districtCodeMap: { [key: string]: string } = {
+  // 서울특별시
+  'jongno': '11110',
+  'jung': '11140',
+  'yongsan': '11170',
+  'seongdong': '11200',
+  'gwangjin': '11215',
+  'dongdaemun': '11230',
+  'jungnang': '11260',
+  'seongbuk': '11290',
+  'gangbuk': '11305',
+  'dobong': '11320',
+  'nowon': '11350',
+  'eunpyeong': '11380',
+  'seodaemun': '11410',
+  'mapo': '11440',
+  'yangcheon': '11470',
+  'gangseo': '11500',
+  'guro': '11530',
+  'geumcheon': '11545',
+  'yeongdeungpo': '11560',
+  'dongjak': '11590',
+  'gwanak': '11620',
+  'seocho': '11650',
+  'gangnam': '11680',
+  'songpa': '11710',
+  'gangdong': '11740',
+  // 부산광역시
+  'busanjung': '26110',
+  'busanseo': '26140',
+  'busandong': '26170',
+  'yeongdo': '26200',
+  'busanjin': '26230',
+  'dongnae': '26260',
+  'busannam': '26290',
+  'busanbuk': '26320',
+  'haeundae': '26350',
+  'saha': '26380',
+  'geumjeong': '26410',
+  'busangangseo': '26440',
+  'yeonje': '26470',
+  'suyeong': '26500',
+  'sasang': '26530',
+  'gijang': '26710',
+  // 인천광역시
+  'incheunjung': '28110',
+  'incheondong': '28140',
+  'michuhol': '28177',
+  'yeonsu': '28185',
+  'namdong': '28200',
+  'bupyeong': '28237',
+  'gyeyang': '28245',
+  'incheonseo': '28260',
+};
+
+// 지역 코드로 좌표 찾기 (영문 코드와 숫자 코드 모두 지원)
 export const getCoordinatesByDistrict = (district: string): RegionCoordinate | undefined => {
-  return regionCoordinates.find(region => region.district === district);
+  // 영문 코드인 경우 숫자 코드로 변환
+  const numericCode = districtCodeMap[district] || district;
+  return regionCoordinates.find(region => region.district === numericCode);
 };
 
 // 도시 코드로 중심 좌표 찾기 (해당 도시의 첫 번째 구)
