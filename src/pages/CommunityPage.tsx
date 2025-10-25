@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { getPosts, Post, PostListParams } from '../services/communityService';
 import { useAppSelector } from '../store/hooks';
-import { formatRelativeDate } from '../utils/dateUtils';
+import { formatRelativeDate, formatDate } from '../utils/dateUtils';
 
 const CommunityPage: React.FC = () => {
   const navigate = useNavigate();
@@ -267,7 +267,7 @@ const CommunityPage: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Event fontSize="small" color="action" />
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(post.eventDate).toLocaleDateString('ko-KR', {
+                        {formatDate(post.eventDate, {
                           month: 'long',
                           day: 'numeric',
                           hour: '2-digit',

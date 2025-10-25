@@ -31,6 +31,7 @@ import {
 import { getPosts, Post } from '../../services/communityService';
 import { deleteCommunityPost } from '../../services/adminService';
 import { useNavigate } from 'react-router-dom';
+import { formatShortDate } from '../../utils/dateUtils';
 
 const CommunityPage: React.FC = () => {
   const navigate = useNavigate();
@@ -220,7 +221,7 @@ const CommunityPage: React.FC = () => {
                         <TableCell align="center">{post.commentCount}</TableCell>
                         <TableCell>
                           <Typography variant="body2" fontSize="0.75rem">
-                            {new Date(post.createdAt).toLocaleDateString('ko-KR')}
+                            {formatShortDate(post.createdAt)}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
