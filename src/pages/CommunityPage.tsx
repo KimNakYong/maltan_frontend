@@ -29,6 +29,7 @@ import {
   Group,
   Add,
   Visibility,
+  Whatshot,
 } from '@mui/icons-material';
 import { getPosts, Post, PostListParams } from '../services/communityService';
 import { useAppSelector } from '../store/hooks';
@@ -210,7 +211,23 @@ const CommunityPage: React.FC = () => {
               }}
             >
               <CardContent>
-                <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {post.isPinned && post.pinnedUntil && new Date(post.pinnedUntil) > new Date() && (
+                    <Chip
+                      label="인기"
+                      size="small"
+                      color="error"
+                      icon={<Whatshot />}
+                      sx={{
+                        fontWeight: 'bold',
+                        animation: 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 1 },
+                          '50%': { opacity: 0.7 },
+                        },
+                      }}
+                    />
+                  )}
                   <Chip
                     label={post.category}
                     size="small"

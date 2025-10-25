@@ -32,6 +32,8 @@ export interface Post {
   createdAt: string;
   updatedAt: string;
   images?: PostImage[];
+  isPinned?: boolean;  // 인기 게시글 여부
+  pinnedUntil?: string;  // 고정 만료 시간
 }
 
 export interface PostImage {
