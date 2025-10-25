@@ -21,6 +21,8 @@ import MapTestPage from './pages/MapTestPage';
 
 // Admin Pages
 import DashboardPage from './pages/admin/DashboardPage';
+import ServicesPage from './pages/admin/ServicesPage';
+import DatabasesPage from './pages/admin/DatabasesPage';
 import UsersPage from './pages/admin/UsersPage';
 import PlacesPage from './pages/admin/PlacesPage';
 import AdminCommunityPage from './pages/admin/CommunityPage';
@@ -112,6 +114,8 @@ function App() {
               >
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="services" element={<ServicesPage />} />
+                <Route path="databases" element={<DatabasesPage />} />
                 <Route path="users" element={<UsersPage />} />
                 <Route path="places" element={<PlacesPage />} />
                 <Route path="community" element={<AdminCommunityPage />} />

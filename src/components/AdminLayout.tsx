@@ -26,6 +26,8 @@ import {
   Settings as SettingsIcon,
   Description as DescriptionIcon,
   ExitToApp as LogoutIcon,
+  Storage as StorageIcon,
+  Cloud as CloudIcon,
 } from '@mui/icons-material';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
@@ -41,6 +43,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/admin/dashboard' },
+  { text: '서비스 모니터링', icon: <CloudIcon />, path: '/admin/services' },
+  { text: '데이터베이스', icon: <StorageIcon />, path: '/admin/databases' },
   { text: '사용자 관리', icon: <PeopleIcon />, path: '/admin/users' },
   { text: '장소 관리', icon: <PlaceIcon />, path: '/admin/places' },
   { text: '커뮤니티 관리', icon: <ForumIcon />, path: '/admin/community' },
