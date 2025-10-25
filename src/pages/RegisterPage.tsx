@@ -168,19 +168,19 @@ const RegisterPage: React.FC = () => {
               <TextField
                 fullWidth
                 label="이름"
-                {...register('username', {
+                {...register('name', {
                   required: '이름을 입력해주세요',
                   minLength: {
-                    value: VALIDATION.USERNAME_MIN_LENGTH,
-                    message: `이름은 최소 ${VALIDATION.USERNAME_MIN_LENGTH}자 이상이어야 합니다`,
+                    value: 2,
+                    message: `이름은 최소 2자 이상이어야 합니다`,
                   },
                   maxLength: {
-                    value: VALIDATION.USERNAME_MAX_LENGTH,
-                    message: `이름은 최대 ${VALIDATION.USERNAME_MAX_LENGTH}자까지 입력 가능합니다`,
+                    value: 50,
+                    message: `이름은 최대 50자까지 입력 가능합니다`,
                   },
                 })}
-                error={!!errors.username}
-                helperText={errors.username?.message}
+                error={!!errors.name}
+                helperText={errors.name?.message}
                 disabled={loading}
               />
             </Grid>
