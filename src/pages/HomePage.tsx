@@ -1,11 +1,54 @@
-import React from 'react';
-import { Box, Typography, Paper, Grid, Button } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Paper, Grid, Button, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import { getMyPreferredRegions, PreferredRegion } from '../services/userService';
+import { getCoordinatesByDistrict, DEFAULT_COORDINATE } from '../utils/regionCoordinates';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  
+  const [preferredRegions, setPreferredRegions] = useState<PreferredRegion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState(DEFAULT_COORDINATE);
+
+  // 선호 지역 정보 가져오기
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchPreferredRegions();
+    }
+  }, [isAuthenticated]);
+
+  const fetchPreferredRegions = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMyPreferredRegions();
+      setPreferredRegions(data.preferredRegions);
+      
+      // 1순위 선호 지역의 좌표 설정
+      if (data.preferredRegions.length > 0) {
+        const firstRegion = data.preferredRegions.find(r => r.priority === 1);
+        if (firstRegion) {
+          const coordinate = getCoordinatesByDistrict(firstRegion.district);
+          if (coordinate) {
+            setMapCenter({
+              latitude: coordinate.latitude,
+              longitude: coordinate.longitude,
+            });
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('선호 지역 조회 실패:', err);
+      setError('선호 지역 정보를 불러올 수 없습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Box>
@@ -23,12 +66,118 @@ const HomePage: React.FC = () => {
         <Typography variant="h6" sx={{ mb: 3 }}>
           당신 주변의 맛집, 관광지, 문화시설을 찾아보세요
         </Typography>
-        {isAuthenticated && user?.preferredRegions && user.preferredRegions.length > 0 && (
+        {isAuthenticated && preferredRegions.length > 0 && (
           <Typography variant="body1">
-            📍 관심 지역: {user.preferredRegions.map(r => r.districtName).join(', ')}
+            📍 관심 지역: {preferredRegions.map(r => r.districtName).join(', ')}
           </Typography>
         )}
       </Paper>
+
+      {/* 선호 지역 기반 지도 및 추천 */}
+      {isAuthenticated && preferredRegions.length > 0 && (
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <LocationOnIcon color="primary" />
+            내 관심 지역 추천
+          </Typography>
+          
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          )}
+          
+          {error && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
+          {!loading && !error && (
+            <Grid container spacing={3}>
+              {/* 지도 */}
+              <Grid item xs={12} md={8}>
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 400,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.google.com/maps?q=${mapCenter.latitude},${mapCenter.longitude}&hl=ko&z=14&output=embed`}
+                    allowFullScreen
+                  />
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  {preferredRegions.find(r => r.priority === 1)?.cityName} {preferredRegions.find(r => r.priority === 1)?.districtName} 중심
+                </Typography>
+              </Grid>
+              
+              {/* 선호 지역 목록 */}
+              <Grid item xs={12} md={4}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  내 관심 지역
+                </Typography>
+                {preferredRegions.map((region) => (
+                  <Card key={region.priority} sx={{ mb: 2 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            bgcolor: region.priority === 1 ? 'primary.main' : 'grey.300',
+                            color: region.priority === 1 ? 'white' : 'text.primary',
+                            borderRadius: '50%',
+                            width: 32,
+                            height: 32,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          {region.priority}
+                        </Typography>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {region.districtName}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        {region.cityName}
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        fullWidth
+                        sx={{ mt: 1 }}
+                        onClick={() => {
+                          const coordinate = getCoordinatesByDistrict(region.district);
+                          if (coordinate) {
+                            setMapCenter({
+                              latitude: coordinate.latitude,
+                              longitude: coordinate.longitude,
+                            });
+                          }
+                        }}
+                      >
+                        지도에서 보기
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Grid>
+            </Grid>
+          )}
+        </Paper>
+      )}
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>

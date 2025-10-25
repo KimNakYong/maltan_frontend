@@ -1,72 +1,29 @@
-import { apiClient } from './api';
-import { API_ROUTES } from '../utils/constants';
-import { User, PreferredRegion } from './authService';
+import axios from 'axios';
 
-// Types
-export interface UpdateProfileRequest {
-  username?: string;
-  phone?: string;
-  profileImage?: string;
-  preferredRegions?: PreferredRegion[];
+const API_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+// 선호 지역 인터페이스
+export interface PreferredRegion {
+  priority: number;
+  city: string;
+  cityName: string;
+  district: string;
+  districtName: string;
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
+// 사용자 선호 지역 응답
+export interface PreferredRegionsResponse {
+  preferredRegions: PreferredRegion[];
 }
 
-// User Service
-class UserService {
-  /**
-   * 프로필 조회
-   */
-  async getProfile(): Promise<User> {
-    const response = await apiClient.get<User>(API_ROUTES.USER.PROFILE);
-    return response.data;
-  }
+// 사용자 선호 지역 조회
+export const getMyPreferredRegions = async (): Promise<PreferredRegionsResponse> => {
+  const response = await axios.get(`${API_URL}/api/user/me/preferred-regions`);
+  return response.data;
+};
 
-  /**
-   * 프로필 업데이트
-   */
-  async updateProfile(data: UpdateProfileRequest): Promise<User> {
-    const response = await apiClient.put<User>(API_ROUTES.USER.UPDATE_PROFILE, data);
-    return response.data;
-  }
-
-  /**
-   * 비밀번호 변경
-   */
-  async changePassword(data: ChangePasswordRequest): Promise<void> {
-    await apiClient.post(API_ROUTES.USER.CHANGE_PASSWORD, data);
-  }
-
-  /**
-   * 회원 탈퇴
-   */
-  async deleteAccount(): Promise<void> {
-    await apiClient.delete(API_ROUTES.USER.DELETE_ACCOUNT);
-  }
-
-  /**
-   * 프로필 이미지 업로드
-   */
-  async uploadProfileImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await apiClient.post<{ url: string }>(
-      '/api/user/profile/image',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-
-    return response.data.url;
-  }
-}
-
-export default new UserService();
-
+// 사용자 정보 조회
+export const getMyInfo = async () => {
+  const response = await axios.get(`${API_URL}/api/user/me`);
+  return response.data;
+};
