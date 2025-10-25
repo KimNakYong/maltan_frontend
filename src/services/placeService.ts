@@ -49,7 +49,7 @@ export const getAllPlaces = async (params: {
   sortBy?: string;
   sortDir?: string;
 }): Promise<PlaceListResponse> => {
-  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/place-service/places`, {
+  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/places`, {
     params: {
       page: params.page || 0,
       size: params.size || 20,
@@ -64,7 +64,7 @@ export const getAllPlaces = async (params: {
  * 장소 상세 조회
  */
 export const getPlaceById = async (id: number): Promise<Place> => {
-  const response = await axios.get<ApiResponse<Place>>(`${API_URL}/place-service/places/${id}`);
+  const response = await axios.get<ApiResponse<Place>>(`${API_URL}/places/${id}`);
   return response.data.data;
 };
 
@@ -77,7 +77,7 @@ export const getPlacesByCategory = async (
   size: number = 20
 ): Promise<PlaceListResponse> => {
   const response = await axios.get<ApiResponse<PlaceListResponse>>(
-    `${API_URL}/place-service/places/category/${categoryId}`,
+    `${API_URL}/places/category/${categoryId}`,
     {
       params: { page, size },
     }
@@ -94,7 +94,7 @@ export const searchPlaces = async (
   page: number = 0,
   size: number = 20
 ): Promise<PlaceListResponse> => {
-  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/place-service/places/search`, {
+  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/places/search`, {
     params: {
       keyword,
       categoryId,
@@ -116,11 +116,11 @@ export const getNearbyPlaces = async (
 ): Promise<Place[]> => {
   try {
     console.log('API 요청:', {
-      url: `${API_URL}/place-service/places/nearby`,
+      url: `${API_URL}/places/nearby`,
       params: { latitude, longitude, radius, categoryId }
     });
     
-    const response = await axios.get<ApiResponse<Place[]>>(`${API_URL}/place-service/places/nearby`, {
+    const response = await axios.get<ApiResponse<Place[]>>(`${API_URL}/places/nearby`, {
       params: {
         latitude,
         longitude,
@@ -154,7 +154,7 @@ export const getNearbyPlaces = async (
  * 인기 장소 조회
  */
 export const getPopularPlaces = async (page: number = 0, size: number = 20): Promise<PlaceListResponse> => {
-  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/place-service/places/popular`, {
+  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/places/popular`, {
     params: { page, size },
   });
   return response.data.data;
@@ -164,7 +164,7 @@ export const getPopularPlaces = async (page: number = 0, size: number = 20): Pro
  * 최신 장소 조회
  */
 export const getLatestPlaces = async (page: number = 0, size: number = 20): Promise<PlaceListResponse> => {
-  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/place-service/places/latest`, {
+  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/places/latest`, {
     params: { page, size },
   });
   return response.data.data;
@@ -178,7 +178,7 @@ export const getTopRatedPlaces = async (
   page: number = 0,
   size: number = 20
 ): Promise<PlaceListResponse> => {
-  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/place-service/places/top-rated`, {
+  const response = await axios.get<ApiResponse<PlaceListResponse>>(`${API_URL}/places/top-rated`, {
     params: {
       minReviewCount,
       page,
@@ -192,7 +192,7 @@ export const getTopRatedPlaces = async (
  * 추천 장소 조회
  */
 export const getRecommendedPlaces = async (limit: number = 10): Promise<Place[]> => {
-  const response = await axios.get<ApiResponse<Place[]>>(`${API_URL}/place-service/places/recommended`, {
+  const response = await axios.get<ApiResponse<Place[]>>(`${API_URL}/places/recommended`, {
     params: { limit },
   });
   return response.data.data;
@@ -202,7 +202,7 @@ export const getRecommendedPlaces = async (limit: number = 10): Promise<Place[]>
  * 장소 생성
  */
 export const createPlace = async (placeData: Partial<Place>): Promise<Place> => {
-  const response = await axios.post<ApiResponse<Place>>(`${API_URL}/place-service/places`, placeData);
+  const response = await axios.post<ApiResponse<Place>>(`${API_URL}/places`, placeData);
   return response.data.data;
 };
 
@@ -210,7 +210,7 @@ export const createPlace = async (placeData: Partial<Place>): Promise<Place> => 
  * 장소 수정
  */
 export const updatePlace = async (id: number, placeData: Partial<Place>): Promise<Place> => {
-  const response = await axios.put<ApiResponse<Place>>(`${API_URL}/place-service/places/${id}`, placeData);
+  const response = await axios.put<ApiResponse<Place>>(`${API_URL}/places/${id}`, placeData);
   return response.data.data;
 };
 
@@ -218,6 +218,6 @@ export const updatePlace = async (id: number, placeData: Partial<Place>): Promis
  * 장소 삭제
  */
 export const deletePlace = async (id: number): Promise<void> => {
-  await axios.delete(`${API_URL}/place-service/places/${id}`);
+  await axios.delete(`${API_URL}/places/${id}`);
 };
 
