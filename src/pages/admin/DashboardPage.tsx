@@ -86,14 +86,44 @@ interface MetricCardProps {
 }
 
 const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, color }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    // 애니메이션 효과: 0에서 실제 값까지 부드럽게 증가
+    const duration = 1000; // 1초
+    const steps = 60;
+    const increment = value / steps;
+    let currentStep = 0;
+
+    const timer = setInterval(() => {
+      currentStep++;
+      setDisplayValue(Math.min(increment * currentStep, value));
+      
+      if (currentStep >= steps) {
+        clearInterval(timer);
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
   const getColor = () => {
-    if (value < 50) return 'success';
-    if (value < 80) return 'warning';
+    if (displayValue < 50) return 'success';
+    if (displayValue < 80) return 'warning';
     return 'error';
   };
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Paper 
+      sx={{ 
+        p: 2,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: 4,
+        }
+      }}
+    >
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         {React.cloneElement(icon, { sx: { color: `${color}.main`, mr: 1 } })}
         <Typography variant="body2" color="text.secondary">
@@ -101,13 +131,17 @@ const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, color }) =>
         </Typography>
       </Box>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
-        {value.toFixed(1)}%
+        {displayValue.toFixed(1)}%
       </Typography>
       <LinearProgress
         variant="determinate"
-        value={value}
+        value={displayValue}
         color={getColor()}
-        sx={{ height: 8, borderRadius: 1 }}
+        sx={{ 
+          height: 8, 
+          borderRadius: 1,
+          transition: 'all 0.5s ease',
+        }}
       />
     </Paper>
   );
@@ -142,10 +176,10 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     loadStats();
     
-    // 30초마다 자동 새로고침
+    // 5초마다 자동 새로고침 (실시간 모니터링)
     const interval = setInterval(() => {
       loadStats();
-    }, 30000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -161,11 +195,32 @@ const DashboardPage: React.FC = () => {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
-          실시간 모니터링
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h4" fontWeight="bold">
+            실시간 모니터링
+          </Typography>
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              bgcolor: 'success.main',
+              animation: 'pulse 2s ease-in-out infinite',
+              '@keyframes pulse': {
+                '0%, 100%': {
+                  opacity: 1,
+                  transform: 'scale(1)',
+                },
+                '50%': {
+                  opacity: 0.5,
+                  transform: 'scale(1.2)',
+                },
+              },
+            }}
+          />
+        </Box>
         <Typography variant="body2" color="text.secondary">
-          마지막 업데이트: {refreshTime.toLocaleTimeString()}
+          마지막 업데이트: {refreshTime.toLocaleTimeString()} (5초마다 자동 갱신)
         </Typography>
       </Box>
 
@@ -238,14 +293,30 @@ const DashboardPage: React.FC = () => {
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 2 }}>
+          <Paper 
+            sx={{ 
+              p: 2,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4,
+              }
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <Speed sx={{ color: 'warning.main', mr: 1 }} />
               <Typography variant="body2" color="text.secondary">
                 시스템 부하
               </Typography>
             </Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
+            <Typography 
+              variant="h4" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                transition: 'all 0.5s ease',
+              }}
+            >
               {metrics?.systemLoadAverage.toFixed(2) || '0.00'}
             </Typography>
             <Typography variant="caption" color="text.secondary">
