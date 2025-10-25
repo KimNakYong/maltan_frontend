@@ -145,16 +145,18 @@ export const getPost = async (postId: number): Promise<Post> => {
   return response.data.post || response.data;
 };
 
-// 게시글 ?�성
+// 게시글 작성
 export const createPost = async (data: CreatePostRequest): Promise<Post> => {
   const response = await api.post('/api/community/posts', data);
-  return response.data;
+  // Backend에서 {post: {...}} 형태로 반환하므로 post 추출
+  return response.data.post || response.data;
 };
 
-// 게시글 ?�정
+// 게시글 수정
 export const updatePost = async (postId: number, data: Partial<CreatePostRequest>): Promise<Post> => {
   const response = await api.put(`/api/community/posts/${postId}`, data);
-  return response.data;
+  // Backend에서 {post: {...}} 형태로 반환하므로 post 추출
+  return response.data.post || response.data;
 };
 
 // 게시글 ??��
