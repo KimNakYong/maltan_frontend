@@ -234,7 +234,18 @@ const CommunityDetailPage: React.FC = () => {
     );
   }
 
-  const isAuthor = user?.id && post?.userId ? user.id === post.userId.toString() : false;
+  const isAuthor = user?.id && post?.userId 
+    ? parseInt(user.id) === post.userId || user.id === post.userId.toString()
+    : false;
+  
+  // 디버깅용 로그
+  console.log('isAuthor check:', {
+    userId: user?.id,
+    postUserId: post?.userId,
+    isAuthor,
+    userIdType: typeof user?.id,
+    postUserIdType: typeof post?.userId
+  });
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
