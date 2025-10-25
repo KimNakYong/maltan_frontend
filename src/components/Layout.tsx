@@ -1,10 +1,11 @@
 import React from 'react';
-import { Box, AppBar, Toolbar, Typography, Button, Container, Avatar, Menu, MenuItem, IconButton } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Button, Container, Avatar, Menu, MenuItem, IconButton, Divider } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { logout } from '../store/slices/authSlice';
 // import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -34,6 +35,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleProfile = () => {
     handleClose();
     navigate('/profile');
+  };
+
+  const handleAdmin = () => {
+    handleClose();
+    navigate('/admin');
   };
 
   return (
@@ -88,6 +94,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 }}
               >
                 <MenuItem onClick={handleProfile}>프로필</MenuItem>
+                {user?.role === 'ADMIN' && (
+                  <>
+                    <Divider />
+                    <MenuItem onClick={handleAdmin}>
+                      <AdminPanelSettingsIcon sx={{ mr: 1, fontSize: 20 }} />
+                      관리자 페이지
+                    </MenuItem>
+                  </>
+                )}
+                <Divider />
                 <MenuItem onClick={handleLogout}>로그아웃</MenuItem>
               </Menu>
             </Box>
