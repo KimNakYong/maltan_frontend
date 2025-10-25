@@ -32,7 +32,7 @@ jobs:
       
       - name: Create .env file
         run: |
-          echo "VITE_API_BASE_URL=" > .env
+          echo "VITE_API_BASE_URL=https://reserved-jolie-untastily.ngrok-free.dev" > .env
           echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" >> .env
           cat .env
       
