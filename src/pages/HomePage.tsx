@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, Button, Card, CardContent, CircularProgress, Alert, Chip } from '@mui/material';
+import { Box, Typography, Paper, Grid, Button, Card, CardContent, CircularProgress, Alert, Chip, Rating } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { getMyPreferredRegions, PreferredRegion } from '../services/userService';
 import { getCoordinatesByDistrict, DEFAULT_COORDINATE } from '../utils/regionCoordinates';
 import { PLACE_CATEGORIES } from '../utils/placeCategories';
+import { Place, getNearbyPlaces } from '../services/placeService';
+import GoogleMap from '../components/GoogleMap';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +19,14 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState(DEFAULT_COORDINATE);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [loadingPlaces, setLoadingPlaces] = useState(false);
+  const [markers, setMarkers] = useState<Array<{
+    id: string;
+    position: { lat: number; lng: number };
+    title: string;
+  }>>([]);
+  const [radius, setRadius] = useState(3.0); // 기본 3km
 
   // 선호 지역 정보 가져오기
   useEffect(() => {
@@ -40,10 +51,13 @@ const HomePage: React.FC = () => {
           const coordinate = getCoordinatesByDistrict(firstRegion.district);
           console.log('1순위 지역 좌표:', coordinate);
           if (coordinate) {
-            setMapCenter({
+            const center = {
               latitude: coordinate.latitude,
               longitude: coordinate.longitude,
-            });
+            };
+            setMapCenter(center);
+            // 1순위 지역 주변 장소 자동 로드
+            loadNearbyPlaces(center.latitude, center.longitude);
           }
         }
       }
@@ -54,6 +68,53 @@ const HomePage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // 주변 장소 로드
+  const loadNearbyPlaces = async (lat: number, lng: number, categoryCode?: string) => {
+    setLoadingPlaces(true);
+    try {
+      const nearbyPlaces = await getNearbyPlaces(lat, lng, radius);
+      
+      // 카테고리 필터링 (프론트엔드에서)
+      let filteredPlaces = nearbyPlaces;
+      if (categoryCode) {
+        // TODO: 백엔드 카테고리 ID 매핑 필요
+        filteredPlaces = nearbyPlaces;
+      }
+      
+      setPlaces(filteredPlaces);
+      
+      // 마커 생성
+      const newMarkers = filteredPlaces.map((place) => ({
+        id: place.id.toString(),
+        position: {
+          lat: place.latitude,
+          lng: place.longitude,
+        },
+        title: place.name,
+      }));
+      setMarkers(newMarkers);
+    } catch (err: any) {
+      console.error('주변 장소 로드 실패:', err);
+    } finally {
+      setLoadingPlaces(false);
+    }
+  };
+
+  // 장소 검색 결과 업데이트
+  useEffect(() => {
+    if (places.length > 0) {
+      const newMarkers = places.map((place) => ({
+        id: place.id.toString(),
+        position: {
+          lat: place.latitude,
+          lng: place.longitude,
+        },
+        title: place.name,
+      }));
+      setMarkers(newMarkers);
+    }
+  }, [places]);
 
   return (
     <Box>
@@ -78,13 +139,24 @@ const HomePage: React.FC = () => {
         )}
       </Paper>
 
-      {/* 선호 지역 기반 지도 및 추천 */}
+      {/* 선호 지역 기반 지도 및 주변 장소 */}
       {isAuthenticated && preferredRegions.length > 0 && (
         <Paper sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LocationOnIcon color="primary" />
-            내 관심 지역 추천
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <LocationOnIcon color="primary" />
+              내 관심 지역 주변 장소
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude, selectedCategory || undefined)}
+              disabled={loadingPlaces}
+            >
+              새로고침
+            </Button>
+          </Box>
           
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -102,35 +174,30 @@ const HomePage: React.FC = () => {
             <Grid container spacing={3}>
               {/* 지도 */}
               <Grid item xs={12} md={8}>
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: 400,
-                    borderRadius: 2,
-                    overflow: 'hidden',
-                    border: '1px solid',
-                    borderColor: 'divider',
+                <GoogleMap
+                  center={{ lat: mapCenter.latitude, lng: mapCenter.longitude }}
+                  zoom={14}
+                  markers={markers}
+                  onMapClick={(lat, lng) => {
+                    setMapCenter({ latitude: lat, longitude: lng });
+                    loadNearbyPlaces(lat, lng, selectedCategory || undefined);
                   }}
-                >
-                  <iframe
-                    key={`${mapCenter.latitude}-${mapCenter.longitude}`}
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
-                    style={{ border: 0 }}
-                    src={`https://www.google.com/maps?q=${mapCenter.latitude},${mapCenter.longitude}&hl=ko&z=14&output=embed`}
-                    allowFullScreen
-                  />
+                  style={{ width: '100%', height: '500px', borderRadius: '8px' }}
+                />
+                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    현재 위치: {preferredRegions.find(r => {
+                      const coord = getCoordinatesByDistrict(r.district);
+                      return coord && coord.latitude === mapCenter.latitude && coord.longitude === mapCenter.longitude;
+                    })?.districtName || preferredRegions.find(r => r.priority === 1)?.districtName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {loadingPlaces ? '장소 검색 중...' : `${places.length}개 장소 표시`}
+                  </Typography>
                 </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  현재 위치: {preferredRegions.find(r => {
-                    const coord = getCoordinatesByDistrict(r.district);
-                    return coord && coord.latitude === mapCenter.latitude && coord.longitude === mapCenter.longitude;
-                  })?.districtName || preferredRegions.find(r => r.priority === 1)?.districtName}
-                </Typography>
               </Grid>
               
-              {/* 선호 지역 목록 */}
+              {/* 선호 지역 목록 및 장소 목록 */}
               <Grid item xs={12} md={4}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>
                   내 관심 지역
@@ -168,93 +235,139 @@ const HomePage: React.FC = () => {
                         fullWidth
                         sx={{ mt: 1 }}
                         onClick={() => {
-                          console.log('지도에서 보기 클릭:', region);
                           const coordinate = getCoordinatesByDistrict(region.district);
-                          console.log('찾은 좌표:', coordinate);
                           if (coordinate) {
-                            console.log('지도 중심 변경:', coordinate.latitude, coordinate.longitude);
                             setMapCenter({
                               latitude: coordinate.latitude,
                               longitude: coordinate.longitude,
                             });
-                          } else {
-                            console.error('좌표를 찾을 수 없습니다. district:', region.district);
+                            loadNearbyPlaces(coordinate.latitude, coordinate.longitude, selectedCategory || undefined);
                           }
                         }}
                       >
-                        지도에서 보기
+                        이 지역 보기
                       </Button>
                     </CardContent>
                   </Card>
                 ))}
+
+                {/* 주변 장소 목록 */}
+                {places.length > 0 && (
+                  <>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 3 }}>
+                      주변 장소 ({places.length})
+                    </Typography>
+                    <Box sx={{ maxHeight: '300px', overflowY: 'auto' }}>
+                      {places.slice(0, 5).map((place) => (
+                        <Card 
+                          key={place.id} 
+                          sx={{ 
+                            mb: 1, 
+                            cursor: 'pointer',
+                            '&:hover': { boxShadow: 3 }
+                          }}
+                          onClick={() => {
+                            setMapCenter({ latitude: place.latitude, longitude: place.longitude });
+                          }}
+                        >
+                          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                            <Typography variant="subtitle2" fontWeight="bold">
+                              {place.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                              {place.address}
+                            </Typography>
+                            {place.averageRating && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                <Rating value={place.averageRating} precision={0.1} size="small" readOnly />
+                                <Typography variant="caption">
+                                  {place.averageRating.toFixed(1)}
+                                </Typography>
+                              </Box>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {places.length > 5 && (
+                        <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ display: 'block', mt: 1 }}>
+                          외 {places.length - 5}개 장소
+                        </Typography>
+                      )}
+                    </Box>
+                  </>
+                )}
               </Grid>
             </Grid>
           )}
         </Paper>
       )}
 
-      {/* 주변장소 카테고리 */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          주변 장소 탐색
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          관심있는 카테고리를 선택하여 주변 장소를 찾아보세요
-        </Typography>
-        
-        <Grid container spacing={2}>
-          {PLACE_CATEGORIES.map((category) => (
-            <Grid item xs={12} sm={6} md={2.4} key={category.code}>
-              <Card
-                sx={{
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  border: selectedCategory === category.code ? '2px solid' : '1px solid',
-                  borderColor: selectedCategory === category.code ? 'primary.main' : 'divider',
-                  bgcolor: selectedCategory === category.code ? 'primary.light' : 'background.paper',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4,
-                  },
+      {/* 주변장소 카테고리 (로그인한 경우에만 표시) */}
+      {isAuthenticated && preferredRegions.length > 0 && (
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
+            카테고리별 장소 검색
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            관심있는 카테고리를 선택하면 위 지도에 해당 장소들이 표시됩니다
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {PLACE_CATEGORIES.map((category) => (
+              <Grid item xs={12} sm={6} md={2.4} key={category.code}>
+                <Card
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    border: selectedCategory === category.code ? '2px solid' : '1px solid',
+                    borderColor: selectedCategory === category.code ? 'primary.main' : 'divider',
+                    bgcolor: selectedCategory === category.code ? 'primary.light' : 'background.paper',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4,
+                    },
+                  }}
+                  onClick={() => {
+                    setSelectedCategory(category.code);
+                    loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude, category.code);
+                    // 지도 섹션으로 스크롤
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                    <Box sx={{ fontSize: 40, mb: 1, color: selectedCategory === category.code ? 'primary.main' : 'text.secondary' }}>
+                      {category.icon}
+                    </Box>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      {category.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {category.description}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          
+          {selectedCategory && (
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Chip
+                label={`선택된 카테고리: ${PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name}`}
+                onDelete={() => {
+                  setSelectedCategory(null);
+                  loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude);
                 }}
-                onClick={() => setSelectedCategory(category.code)}
-              >
-                <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                  <Box sx={{ fontSize: 40, mb: 1, color: selectedCategory === category.code ? 'primary.main' : 'text.secondary' }}>
-                    {category.icon}
-                  </Box>
-                  <Typography variant="h6" fontWeight="bold" gutterBottom>
-                    {category.name}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {category.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-        
-        {selectedCategory && (
-          <Box sx={{ mt: 3, textAlign: 'center' }}>
-            <Chip
-              label={`선택된 카테고리: ${PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name}`}
-              onDelete={() => setSelectedCategory(null)}
-              color="primary"
-              sx={{ mr: 2 }}
-            />
-            <Button
-              variant="contained"
-              onClick={() => {
-                // TODO: 장소 목록 페이지로 이동 (카테고리 파라미터 전달)
-                alert(`${PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name} 카테고리 장소 검색 (개발 예정)`);
-              }}
-            >
-              이 카테고리 장소 보기
-            </Button>
-          </Box>
-        )}
-      </Paper>
+                color="primary"
+                sx={{ mr: 2 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                위 지도에서 {PLACE_CATEGORIES.find(c => c.code === selectedCategory)?.name} 카테고리 장소를 확인하세요
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      )}
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
