@@ -21,7 +21,6 @@ import {
   TrendingUp,
   TrendingDown,
   People,
-  Place,
   Forum,
   Speed,
   Memory,
