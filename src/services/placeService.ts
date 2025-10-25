@@ -114,15 +114,40 @@ export const getNearbyPlaces = async (
   radius: number = 5.0,
   categoryId?: number
 ): Promise<Place[]> => {
-  const response = await axios.get<ApiResponse<Place[]>>(`${API_URL}/place-service/places/nearby`, {
-    params: {
-      latitude,
-      longitude,
-      radius,
-      categoryId,
-    },
-  });
-  return response.data.data;
+  try {
+    console.log('API 요청:', {
+      url: `${API_URL}/place-service/places/nearby`,
+      params: { latitude, longitude, radius, categoryId }
+    });
+    
+    const response = await axios.get<ApiResponse<Place[]>>(`${API_URL}/place-service/places/nearby`, {
+      params: {
+        latitude,
+        longitude,
+        radius,
+        categoryId,
+      },
+    });
+    
+    console.log('API 전체 응답:', response);
+    console.log('response.data:', response.data);
+    
+    // API 응답 구조 확인
+    if (response.data && response.data.data) {
+      return response.data.data;
+    } else if (Array.isArray(response.data)) {
+      // data 래퍼 없이 직접 배열을 반환하는 경우
+      return response.data;
+    } else {
+      console.error('예상치 못한 API 응답 구조:', response.data);
+      return [];
+    }
+  } catch (error: any) {
+    console.error('getNearbyPlaces 에러:', error);
+    console.error('에러 응답:', error.response?.data);
+    console.error('에러 상태:', error.response?.status);
+    return [];
+  }
 };
 
 /**
