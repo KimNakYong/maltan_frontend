@@ -24,9 +24,11 @@ import { ko } from 'date-fns/locale';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { createPost, CreatePostRequest } from '../services/communityService';
 import { CITIES, DISTRICTS } from '../utils/regionData';
+import { useAppSelector } from '../store/hooks';
 
 const CommunityWritePage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAppSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -148,6 +150,11 @@ const CommunityWritePage: React.FC = () => {
         request.latitude = formData.latitude;
         request.longitude = formData.longitude;
         request.address = formData.address;
+      }
+
+      // userId 추가 (임시: 인증 시스템 구현 전까지)
+      if (user?.id) {
+        request.userId = parseInt(user.id);
       }
 
       const post = await createPost(request);

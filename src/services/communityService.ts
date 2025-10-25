@@ -95,6 +95,7 @@ export interface CreatePostRequest {
   longitude?: number;
   address?: string;
   imageUrls?: string[];
+  userId?: number;  // 임시: 인증 시스템 구현 전까지 필요
 }
 
 // ?��? ?�성 ?�청
@@ -185,31 +186,31 @@ export const deleteComment = async (commentId: number): Promise<void> => {
 
 // === 추천/비추�?API ===
 
-// 게시글 추천/비추�?
-export const votePost = async (postId: number, voteType: 'LIKE' | 'DISLIKE'): Promise<void> => {
-  await api.post(`/api/community/posts/${postId}/vote`, { voteType });
+// 게시글 추천/비추천
+export const votePost = async (postId: number, voteType: 'LIKE' | 'DISLIKE', userId?: number): Promise<void> => {
+  await api.post(`/api/community/posts/${postId}/vote`, { voteType, userId });
 };
 
-// 게시글 추천/비추�?취소
-export const unvotePost = async (postId: number): Promise<void> => {
-  await api.delete(`/api/community/posts/${postId}/vote`);
+// 게시글 추천/비추천 취소
+export const unvotePost = async (postId: number, userId?: number): Promise<void> => {
+  await api.delete(`/api/community/posts/${postId}/vote${userId ? `?userId=${userId}` : ''}`);
 };
 
-// ?��? 추천/비추�?
-export const voteComment = async (commentId: number, voteType: 'LIKE' | 'DISLIKE'): Promise<void> => {
-  await api.post(`/api/community/comments/${commentId}/vote`, { voteType });
+// 댓글 추천/비추천
+export const voteComment = async (commentId: number, voteType: 'LIKE' | 'DISLIKE', userId?: number): Promise<void> => {
+  await api.post(`/api/community/comments/${commentId}/vote`, { voteType, userId });
 };
 
-// ?��? 추천/비추�?취소
-export const unvoteComment = async (commentId: number): Promise<void> => {
-  await api.delete(`/api/community/comments/${commentId}/vote`);
+// 댓글 추천/비추천 취소
+export const unvoteComment = async (commentId: number, userId?: number): Promise<void> => {
+  await api.delete(`/api/community/comments/${commentId}/vote${userId ? `?userId=${userId}` : ''}`);
 };
 
 // === 모집 참여 API ===
 
 // 모집 참여/취소 (?��?)
-export const toggleParticipation = async (postId: number): Promise<{ participated: boolean; currentCount: number }> => {
-  const response = await api.post(`/api/community/posts/${postId}/participate`);
+export const toggleParticipation = async (postId: number, userId?: number): Promise<{ participated: boolean; currentCount: number }> => {
+  const response = await api.post(`/api/community/posts/${postId}/participate${userId ? `?userId=${userId}` : ''}`);
   return response.data;
 };
 

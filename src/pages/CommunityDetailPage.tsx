@@ -109,12 +109,13 @@ const CommunityDetailPage: React.FC = () => {
       return;
     }
 
-    if (!id) return;
+    if (!id || !user?.id) return;
+    const userId = parseInt(user.id);
 
     try {
       if (myVote === voteType) {
         // 같은 투표 취소
-        await unvotePost(parseInt(id));
+        await unvotePost(parseInt(id), userId);
         setMyVote(null);
         setPost(prev => prev ? {
           ...prev,
@@ -123,7 +124,7 @@ const CommunityDetailPage: React.FC = () => {
         } : null);
       } else {
         // 새로운 투표 또는 변경
-        await votePost(parseInt(id), voteType);
+        await votePost(parseInt(id), voteType, userId);
         setPost(prev => {
           if (!prev) return null;
           let newLikeCount = prev.likeCount;
@@ -155,10 +156,11 @@ const CommunityDetailPage: React.FC = () => {
       return;
     }
 
-    if (!id) return;
+    if (!id || !user?.id) return;
+    const userId = parseInt(user.id);
 
     try {
-      const result = await toggleParticipation(parseInt(id));
+      const result = await toggleParticipation(parseInt(id), userId);
       setParticipated(result.participated);
       setPost(prev => prev ? {
         ...prev,

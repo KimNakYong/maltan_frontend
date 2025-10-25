@@ -27,13 +27,16 @@ const HomePage: React.FC = () => {
     setError(null);
     try {
       const data = await getMyPreferredRegions();
+      console.log('선호 지역 데이터:', data);
       setPreferredRegions(data.preferredRegions);
       
       // 1순위 선호 지역의 좌표 설정
       if (data.preferredRegions.length > 0) {
         const firstRegion = data.preferredRegions.find(r => r.priority === 1);
+        console.log('1순위 지역:', firstRegion);
         if (firstRegion) {
           const coordinate = getCoordinatesByDistrict(firstRegion.district);
+          console.log('1순위 지역 좌표:', coordinate);
           if (coordinate) {
             setMapCenter({
               latitude: coordinate.latitude,
@@ -163,12 +166,17 @@ const HomePage: React.FC = () => {
                         fullWidth
                         sx={{ mt: 1 }}
                         onClick={() => {
+                          console.log('지도에서 보기 클릭:', region);
                           const coordinate = getCoordinatesByDistrict(region.district);
+                          console.log('찾은 좌표:', coordinate);
                           if (coordinate) {
+                            console.log('지도 중심 변경:', coordinate.latitude, coordinate.longitude);
                             setMapCenter({
                               latitude: coordinate.latitude,
                               longitude: coordinate.longitude,
                             });
+                          } else {
+                            console.error('좌표를 찾을 수 없습니다. district:', region.district);
                           }
                         }}
                       >
