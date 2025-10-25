@@ -75,6 +75,17 @@ const HomePage: React.FC = () => {
     try {
       const nearbyPlaces = await getNearbyPlaces(lat, lng, radius);
       
+      // API 응답 확인
+      console.log('API 응답:', nearbyPlaces);
+      
+      // 배열인지 확인
+      if (!Array.isArray(nearbyPlaces)) {
+        console.error('API 응답이 배열이 아닙니다:', nearbyPlaces);
+        setPlaces([]);
+        setMarkers([]);
+        return;
+      }
+      
       // 카테고리 필터링 (프론트엔드에서)
       let filteredPlaces = nearbyPlaces;
       if (categoryCode) {
@@ -96,6 +107,8 @@ const HomePage: React.FC = () => {
       setMarkers(newMarkers);
     } catch (err: any) {
       console.error('주변 장소 로드 실패:', err);
+      setPlaces([]);
+      setMarkers([]);
     } finally {
       setLoadingPlaces(false);
     }
@@ -103,7 +116,7 @@ const HomePage: React.FC = () => {
 
   // 장소 검색 결과 업데이트
   useEffect(() => {
-    if (places.length > 0) {
+    if (places && Array.isArray(places) && places.length > 0) {
       const newMarkers = places.map((place) => ({
         id: place.id.toString(),
         position: {
@@ -156,8 +169,20 @@ const HomePage: React.FC = () => {
                 variant={radius === 1 ? 'contained' : 'outlined'}
                 onClick={async () => {
                   setRadius(1);
-                  const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 1);
-                  setPlaces(nearbyPlaces);
+                  setLoadingPlaces(true);
+                  try {
+                    const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 1);
+                    if (Array.isArray(nearbyPlaces)) {
+                      setPlaces(nearbyPlaces);
+                    } else {
+                      setPlaces([]);
+                    }
+                  } catch (err) {
+                    console.error('장소 로드 실패:', err);
+                    setPlaces([]);
+                  } finally {
+                    setLoadingPlaces(false);
+                  }
                 }}
               >
                 1km
@@ -167,8 +192,20 @@ const HomePage: React.FC = () => {
                 variant={radius === 3 ? 'contained' : 'outlined'}
                 onClick={async () => {
                   setRadius(3);
-                  const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 3);
-                  setPlaces(nearbyPlaces);
+                  setLoadingPlaces(true);
+                  try {
+                    const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 3);
+                    if (Array.isArray(nearbyPlaces)) {
+                      setPlaces(nearbyPlaces);
+                    } else {
+                      setPlaces([]);
+                    }
+                  } catch (err) {
+                    console.error('장소 로드 실패:', err);
+                    setPlaces([]);
+                  } finally {
+                    setLoadingPlaces(false);
+                  }
                 }}
               >
                 3km
@@ -178,8 +215,20 @@ const HomePage: React.FC = () => {
                 variant={radius === 5 ? 'contained' : 'outlined'}
                 onClick={async () => {
                   setRadius(5);
-                  const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 5);
-                  setPlaces(nearbyPlaces);
+                  setLoadingPlaces(true);
+                  try {
+                    const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 5);
+                    if (Array.isArray(nearbyPlaces)) {
+                      setPlaces(nearbyPlaces);
+                    } else {
+                      setPlaces([]);
+                    }
+                  } catch (err) {
+                    console.error('장소 로드 실패:', err);
+                    setPlaces([]);
+                  } finally {
+                    setLoadingPlaces(false);
+                  }
                 }}
               >
                 5km
@@ -230,7 +279,7 @@ const HomePage: React.FC = () => {
                     })?.districtName || preferredRegions.find(r => r.priority === 1)?.districtName}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {loadingPlaces ? '장소 검색 중...' : `${places.length}개 장소 표시`}
+                    {loadingPlaces ? '장소 검색 중...' : `${places?.length || 0}개 장소 표시`}
                   </Typography>
                 </Box>
               </Grid>
@@ -290,7 +339,7 @@ const HomePage: React.FC = () => {
                 ))}
 
                 {/* 주변 장소 목록 */}
-                {!loadingPlaces && places.length === 0 && (
+                {!loadingPlaces && (!places || places.length === 0) && (
                   <Alert severity="info" sx={{ mt: 3 }}>
                     <Typography variant="body2" fontWeight="bold" gutterBottom>
                       주변에 등록된 장소가 없습니다
@@ -302,7 +351,7 @@ const HomePage: React.FC = () => {
                     </Typography>
                   </Alert>
                 )}
-                {places.length > 0 && (
+                {places && places.length > 0 && (
                   <>
                     <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 3 }}>
                       주변 장소 ({places.length})
