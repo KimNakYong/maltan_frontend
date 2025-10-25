@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -16,19 +16,22 @@ import {
   Grid,
   Alert,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ko } from 'date-fns/locale';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import { createPost, CreatePostRequest } from '../services/communityService';
+import { createPost, updatePost, getPost, CreatePostRequest } from '../services/communityService';
 import { CITIES, DISTRICTS } from '../utils/regionData';
 import { useAppSelector } from '../store/hooks';
 
 const CommunityWritePage: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { user } = useAppSelector((state) => state.auth);
+  const isEditMode = !!id;
   
   const [formData, setFormData] = useState({
     title: '',
@@ -50,6 +53,7 @@ const CommunityWritePage: React.FC = () => {
   const [selectedCityName, setSelectedCityName] = useState('서울특별시');
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
   const [placeSearchInput, setPlaceSearchInput] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
@@ -57,6 +61,62 @@ const CommunityWritePage: React.FC = () => {
   const placeInputRef = useRef<HTMLInputElement>(null);
 
   const categories = ['자유', '질문', '정보', '모임', '봉사', '운동', '취미'];
+
+  // 수정 모드일 때 기존 게시글 불러오기
+  useEffect(() => {
+    if (isEditMode && id) {
+      fetchPost();
+    }
+  }, [isEditMode, id]);
+
+  const fetchPost = async () => {
+    if (!id) return;
+    
+    setInitialLoading(true);
+    try {
+      const post = await getPost(parseInt(id));
+      
+      // 작성자 확인
+      if (user?.id && post.userId.toString() !== user.id) {
+        alert('본인이 작성한 글만 수정할 수 있습니다.');
+        navigate(`/community/${id}`);
+        return;
+      }
+      
+      setFormData({
+        title: post.title,
+        content: post.content,
+        category: post.category,
+        regionSi: post.regionSi,
+        regionGu: post.regionGu || '',
+        regionDong: post.regionDong || '',
+        isRecruitment: post.isRecruitment || false,
+        recruitmentMax: post.recruitmentMax || 5,
+        recruitmentDeadline: post.recruitmentDeadline ? new Date(post.recruitmentDeadline) : null,
+        eventDate: post.eventDate ? new Date(post.eventDate) : null,
+        eventLocation: post.eventLocation || '',
+        latitude: post.latitude || null,
+        longitude: post.longitude || null,
+        address: post.address || '',
+      });
+      
+      if (post.address) {
+        setPlaceSearchInput(post.address);
+      }
+      
+      // 시/도 이름 설정
+      const city = CITIES.find(c => c.code === post.regionSi);
+      if (city) {
+        setSelectedCityName(city.name);
+      }
+    } catch (err: any) {
+      console.error('게시글 조회 실패:', err);
+      alert('게시글을 불러오는데 실패했습니다.');
+      navigate('/community');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   // Google Places Autocomplete 초기화
   useEffect(() => {
@@ -157,20 +217,33 @@ const CommunityWritePage: React.FC = () => {
         request.userId = parseInt(user.id);
       }
 
-      const post = await createPost(request);
+      let post;
+      if (isEditMode && id) {
+        post = await updatePost(parseInt(id), request);
+      } else {
+        post = await createPost(request);
+      }
       navigate(`/community/${post.id}`);
     } catch (err: any) {
-      console.error('게시글 작성 실패:', err);
-      setError(err.response?.data?.message || '게시글 작성에 실패했습니다.');
+      console.error(`게시글 ${isEditMode ? '수정' : '작성'} 실패:`, err);
+      setError(err.response?.data?.message || `게시글 ${isEditMode ? '수정' : '작성'}에 실패했습니다.`);
     } finally {
       setLoading(false);
     }
   };
 
+  if (initialLoading) {
+    return (
+      <Container maxWidth="md" sx={{ py: 8, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom>
-        글쓰기
+        {isEditMode ? '글 수정' : '글쓰기'}
       </Typography>
 
       {error && (
@@ -399,7 +472,7 @@ const CommunityWritePage: React.FC = () => {
                 onClick={handleSubmit}
                 disabled={loading}
               >
-                {loading ? '작성 중...' : '등록'}
+                {loading ? (isEditMode ? '수정 중...' : '작성 중...') : (isEditMode ? '수정 완료' : '등록')}
               </Button>
             </Box>
           </Grid>

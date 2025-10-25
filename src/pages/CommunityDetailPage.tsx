@@ -272,6 +272,11 @@ const CommunityDetailPage: React.FC = () => {
             <Typography variant="body2" color="text.secondary">•</Typography>
             <Typography variant="body2" color="text.secondary">
               {formatDate(post.createdAt)}
+              {post.updatedAt && post.updatedAt !== post.createdAt && (
+                <span style={{ marginLeft: '4px', color: '#666' }}>
+                  (수정됨: {formatDate(post.updatedAt)})
+                </span>
+              )}
             </Typography>
             <Typography variant="body2" color="text.secondary">•</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

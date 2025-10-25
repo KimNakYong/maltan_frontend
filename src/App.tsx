@@ -137,6 +137,11 @@ function App() {
                     <CommunityWritePage />
                   </PrivateRoute>
                 } />
+                <Route path="/community/edit/:id" element={
+                  <PrivateRoute>
+                    <CommunityWritePage />
+                  </PrivateRoute>
+                } />
                 <Route path="/community/:id" element={<CommunityDetailPage />} />
                 <Route path="/map-test" element={<MapTestPage />} />
 
