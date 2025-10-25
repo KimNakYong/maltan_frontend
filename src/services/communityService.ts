@@ -101,6 +101,7 @@ export interface CreatePostRequest {
 export interface CreateCommentRequest {
   content: string;
   parentCommentId?: number;
+  userId?: number;  // 임시: 인증 시스템 구현 전까지 필요
 }
 
 // ?�표 ?�청

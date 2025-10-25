@@ -23,6 +23,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ko } from 'date-fns/locale';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { createPost, CreatePostRequest } from '../services/communityService';
+import { CITIES, DISTRICTS } from '../utils/regionData';
 
 const CommunityWritePage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const CommunityWritePage: React.FC = () => {
     title: '',
     content: '',
     category: '자유',
-    regionSi: '서울특별시',
+    regionSi: 'seoul',
     regionGu: '',
     regionDong: '',
     isRecruitment: false,
@@ -43,6 +44,8 @@ const CommunityWritePage: React.FC = () => {
     longitude: null as number | null,
     address: '',
   });
+
+  const [selectedCityName, setSelectedCityName] = useState('서울특별시');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,8 +130,8 @@ const CommunityWritePage: React.FC = () => {
         title: formData.title,
         content: formData.content,
         category: formData.category,
-        regionSi: formData.regionSi,
-        regionGu: formData.regionGu || undefined,
+        regionSi: selectedCityName,
+        regionGu: formData.regionGu ? DISTRICTS[formData.regionSi]?.find(d => d.code === formData.regionGu)?.name : undefined,
         regionDong: formData.regionDong || undefined,
         isRecruitment: formData.isRecruitment,
       };
@@ -189,14 +192,50 @@ const CommunityWritePage: React.FC = () => {
             </FormControl>
           </Grid>
 
-          {/* 지역 */}
+          {/* 지역 (시/도) */}
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="지역 (시/도)"
-              value={formData.regionSi}
-              onChange={(e) => handleChange('regionSi', e.target.value)}
-            />
+            <FormControl fullWidth>
+              <InputLabel>지역 (시/도)</InputLabel>
+              <Select
+                value={formData.regionSi}
+                label="지역 (시/도)"
+                onChange={(e) => {
+                  const cityCode = e.target.value;
+                  const cityName = CITIES.find(c => c.code === cityCode)?.name || '';
+                  handleChange('regionSi', cityCode);
+                  setSelectedCityName(cityName);
+                  handleChange('regionGu', ''); // 시/도 변경 시 구/군 초기화
+                }}
+              >
+                {CITIES.map((city) => (
+                  <MenuItem key={city.code} value={city.code}>
+                    {city.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* 지역 (구/군) */}
+          <Grid item xs={12} sm={6}>
+            <FormControl fullWidth>
+              <InputLabel>지역 (구/군)</InputLabel>
+              <Select
+                value={formData.regionGu}
+                label="지역 (구/군)"
+                onChange={(e) => handleChange('regionGu', e.target.value)}
+                disabled={!formData.regionSi}
+              >
+                <MenuItem value="">
+                  <em>선택 안 함</em>
+                </MenuItem>
+                {DISTRICTS[formData.regionSi]?.map((district) => (
+                  <MenuItem key={district.code} value={district.code}>
+                    {district.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12} sm={6}>

@@ -187,6 +187,7 @@ const CommunityDetailPage: React.FC = () => {
       await createComment(parseInt(id), {
         content: newComment,
         parentCommentId: replyTo || undefined,
+        userId: user?.id ? parseInt(user.id) : undefined,  // 임시: 로그인한 사용자 ID 전달
       });
       setNewComment('');
       setReplyTo(null);
