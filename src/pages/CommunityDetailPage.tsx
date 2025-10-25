@@ -433,9 +433,11 @@ const CommunityDetailPage: React.FC = () => {
             <Box key={comment.id} sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Avatar sx={{ width: 24, height: 24 }}>U</Avatar>
+                  <Avatar sx={{ width: 24, height: 24 }}>
+                    {comment.userName ? comment.userName.charAt(0) : 'U'}
+                  </Avatar>
                   <Typography variant="body2" fontWeight="bold">
-                    사용자{comment.userId}
+                    {comment.userName || `사용자${comment.userId}`}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {formatDate(comment.createdAt)}

@@ -27,8 +27,10 @@ export interface AdminUser {
   email: string;
   name: string;
   phoneNumber?: string;
+  phone?: string;
   role: 'USER' | 'ADMIN';
-  enabled: boolean;
+  isEnabled: boolean;
+  enabled?: boolean; // 호환성을 위해 유지
   createdAt: string;
   updatedAt: string;
   preferredRegions?: any[];
@@ -55,13 +57,32 @@ export const getUsers = async (page: number = 0, size: number = 10, search?: str
     params.search = search;
   }
   const response = await api.get('/api/user/admin/users', { params });
-  return response.data.data;
+  const data = response.data.data;
+  
+  // isEnabled를 enabled로도 매핑 (호환성)
+  const users = (data.users || []).map((user: any) => ({
+    ...user,
+    isEnabled: user.isEnabled !== undefined ? user.isEnabled : user.enabled !== undefined ? user.enabled : true,
+    enabled: user.isEnabled !== undefined ? user.isEnabled : user.enabled !== undefined ? user.enabled : true,
+  }));
+  
+  return {
+    ...data,
+    users: users,
+  };
 };
 
 // 특정 사용자 조회
 export const getUser = async (userId: number): Promise<AdminUser> => {
   const response = await api.get(`/api/user/admin/users/${userId}`);
-  return response.data.data;
+  const user = response.data.data;
+  
+  // isEnabled를 enabled로도 매핑 (호환성)
+  return {
+    ...user,
+    isEnabled: user.isEnabled !== undefined ? user.isEnabled : user.enabled !== undefined ? user.enabled : true,
+    enabled: user.isEnabled !== undefined ? user.isEnabled : user.enabled !== undefined ? user.enabled : true,
+  };
 };
 
 // 사용자 역할 변경

@@ -28,8 +28,6 @@ import {
   Search,
   Edit,
   Delete,
-  Block,
-  CheckCircle,
   AdminPanelSettings,
   Close,
 } from '@mui/icons-material';
@@ -37,7 +35,6 @@ import {
   getUsers,
   getUser,
   updateUserRole,
-  updateUserStatus,
   deleteUser,
   AdminUser,
 } from '../../services/adminService';
@@ -108,15 +105,6 @@ const UsersPage: React.FC = () => {
     setSelectedUser(null);
   };
 
-  const handleBlockUser = async (userId: number, currentStatus: boolean) => {
-    try {
-      await updateUserStatus(userId, !currentStatus);
-      alert(currentStatus ? '사용자가 차단되었습니다.' : '사용자 차단이 해제되었습니다.');
-      loadUsers();
-    } catch (err) {
-      alert('상태 변경에 실패했습니다.');
-    }
-  };
 
   const handleDeleteUser = async (userId: number) => {
     if (window.confirm('정말 이 사용자를 삭제하시겠습니까?')) {
@@ -194,7 +182,6 @@ const UsersPage: React.FC = () => {
                     <TableCell>사용자</TableCell>
                     <TableCell>이메일</TableCell>
                     <TableCell>권한</TableCell>
-                    <TableCell>상태</TableCell>
                     <TableCell>가입일</TableCell>
                     <TableCell align="center">작업</TableCell>
                   </TableRow>
@@ -228,14 +215,6 @@ const UsersPage: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            label={user.enabled ? '정상' : '차단됨'}
-                            color={user.enabled ? 'success' : 'error'}
-                            size="small"
-                            icon={user.enabled ? <CheckCircle /> : <Block />}
-                          />
-                        </TableCell>
-                        <TableCell>
                           {new Date(user.createdAt).toLocaleDateString('ko-KR')}
                         </TableCell>
                         <TableCell align="center">
@@ -254,14 +233,6 @@ const UsersPage: React.FC = () => {
                             title={user.role === 'ADMIN' ? '일반 사용자로 변경' : '관리자로 변경'}
                           >
                             <AdminPanelSettings />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color={user.enabled ? 'error' : 'success'}
-                            onClick={() => handleBlockUser(user.id, user.enabled)}
-                            title={user.enabled ? '차단' : '차단 해제'}
-                          >
-                            <Block />
                           </IconButton>
                           <IconButton
                             size="small"
@@ -351,18 +322,6 @@ const UsersPage: React.FC = () => {
                 <Chip
                   label={selectedUser.role === 'ADMIN' ? '관리자' : '사용자'}
                   color={selectedUser.role === 'ADMIN' ? 'secondary' : 'default'}
-                  size="small"
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant="body2" color="text.secondary">
-                  상태
-                </Typography>
-              </Grid>
-              <Grid item xs={8}>
-                <Chip
-                  label={selectedUser.enabled ? '정상' : '차단됨'}
-                  color={selectedUser.enabled ? 'success' : 'error'}
                   size="small"
                 />
               </Grid>

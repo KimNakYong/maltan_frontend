@@ -232,7 +232,7 @@ const DashboardPage: React.FC = () => {
 
       {/* 주요 통계 */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <StatCard
             title="총 사용자"
             value={stats?.totalUsers.toLocaleString() || '0'}
@@ -240,23 +240,15 @@ const DashboardPage: React.FC = () => {
             color="primary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <StatCard
-            title="정상 사용자"
-            value={stats?.activeUsers.toLocaleString() || '0'}
+            title="관리자"
+            value={stats?.adminUsers.toLocaleString() || '0'}
             icon={<People />}
-            color="success"
+            color="secondary"
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="차단된 사용자"
-            value={stats?.inactiveUsers.toLocaleString() || '0'}
-            icon={<People />}
-            color="error"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <StatCard
             title="커뮤니티 글"
             value={stats?.totalPosts.toLocaleString() || '0'}

@@ -122,7 +122,7 @@ const ProfilePage: React.FC = () => {
               sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
             />
             <Typography variant="h6" gutterBottom>
-              {profile?.username}
+              {profile?.name || profile?.username}
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {profile?.email}

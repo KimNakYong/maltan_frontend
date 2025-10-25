@@ -300,9 +300,11 @@ const CommunityPage: React.FC = () => {
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Avatar sx={{ width: 24, height: 24 }}>U</Avatar>
+                    <Avatar sx={{ width: 24, height: 24 }}>
+                      {post.userName ? post.userName.charAt(0) : 'U'}
+                    </Avatar>
                     <Typography variant="caption" color="text.secondary">
-                      사용자{post.userId}
+                      {post.userName || `사용자${post.userId}`}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       •
