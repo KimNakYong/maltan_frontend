@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import userService, { UpdateProfileRequest, ChangePasswordRequest } from '../../services/userService';
 import { User } from '../../services/authService';
+import { STORAGE_KEYS } from '../../utils/constants';
+import { setLocalStorage } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 
 // State 타입
@@ -108,6 +110,8 @@ const userSlice = createSlice({
     builder.addCase(updateProfile.fulfilled, (state, action) => {
       state.loading = false;
       state.profile = action.payload;
+      // 로컬 스토리지도 업데이트
+      setLocalStorage(STORAGE_KEYS.USER, action.payload);
     });
     builder.addCase(updateProfile.rejected, (state, action) => {
       state.loading = false;

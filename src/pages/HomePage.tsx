@@ -108,6 +108,7 @@ const HomePage: React.FC = () => {
                   }}
                 >
                   <iframe
+                    key={`${mapCenter.latitude}-${mapCenter.longitude}`}
                     width="100%"
                     height="100%"
                     frameBorder="0"
@@ -117,7 +118,10 @@ const HomePage: React.FC = () => {
                   />
                 </Box>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {preferredRegions.find(r => r.priority === 1)?.cityName} {preferredRegions.find(r => r.priority === 1)?.districtName} 중심
+                  현재 위치: {preferredRegions.find(r => {
+                    const coord = getCoordinatesByDistrict(r.district);
+                    return coord && coord.latitude === mapCenter.latitude && coord.longitude === mapCenter.longitude;
+                  })?.districtName || preferredRegions.find(r => r.priority === 1)?.districtName}
                 </Typography>
               </Grid>
               

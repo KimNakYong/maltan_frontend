@@ -52,8 +52,8 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (profile) {
       resetProfile({
-        username: profile.username,
-        phone: profile.phone || '',
+        name: profile.name || profile.username,
+        phoneNumber: profile.phone || '',
       });
       
       // 선호 지역 설정
@@ -162,15 +162,15 @@ const ProfilePage: React.FC = () => {
                   <TextField
                     fullWidth
                     label="이름"
-                    {...registerProfile('username', {
+                    {...registerProfile('name', {
                       required: '이름을 입력해주세요',
                       minLength: {
                         value: VALIDATION.USERNAME_MIN_LENGTH,
                         message: `이름은 최소 ${VALIDATION.USERNAME_MIN_LENGTH}자 이상이어야 합니다`,
                       },
                     })}
-                    error={!!profileErrors.username}
-                    helperText={profileErrors.username?.message as string}
+                    error={!!profileErrors.name}
+                    helperText={profileErrors.name?.message as string}
                     disabled={loading}
                   />
                 </Grid>
@@ -187,14 +187,14 @@ const ProfilePage: React.FC = () => {
                   <TextField
                     fullWidth
                     label="전화번호"
-                    {...registerProfile('phone', {
+                    {...registerProfile('phoneNumber', {
                       pattern: {
                         value: VALIDATION.PHONE_REGEX,
                         message: '올바른 전화번호 형식이 아닙니다',
                       },
                     })}
-                    error={!!profileErrors.phone}
-                    helperText={profileErrors.phone?.message as string}
+                    error={!!profileErrors.phoneNumber}
+                    helperText={profileErrors.phoneNumber?.message as string}
                     disabled={loading}
                   />
                 </Grid>
