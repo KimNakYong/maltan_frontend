@@ -440,12 +440,19 @@ const HomePage: React.FC = () => {
                     },
                   }}
                   onClick={() => {
+                    console.log('카테고리 클릭:', category.code, 'ID:', category.id);
                     setSelectedCategory(category.code);
                     if (map) {
+                      console.log('지도 객체 존재');
                       const bounds = map.getBounds();
                       if (bounds) {
+                        console.log('지도 범위 존재, loadPlacesInBounds 호출');
                         loadPlacesInBounds(bounds, category.code);
+                      } else {
+                        console.error('지도 범위가 없습니다!');
                       }
+                    } else {
+                      console.error('지도 객체가 없습니다!');
                     }
                     // 지도 섹션으로 스크롤
                     window.scrollTo({ top: 0, behavior: 'smooth' });
