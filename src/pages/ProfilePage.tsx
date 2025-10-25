@@ -170,7 +170,7 @@ const ProfilePage: React.FC = () => {
                       },
                     })}
                     error={!!profileErrors.username}
-                    helperText={profileErrors.username?.message}
+                    helperText={profileErrors.username?.message as string}
                     disabled={loading}
                   />
                 </Grid>
@@ -194,7 +194,7 @@ const ProfilePage: React.FC = () => {
                       },
                     })}
                     error={!!profileErrors.phone}
-                    helperText={profileErrors.phone?.message}
+                    helperText={profileErrors.phone?.message as string}
                     disabled={loading}
                   />
                 </Grid>
@@ -234,7 +234,7 @@ const ProfilePage: React.FC = () => {
                 required: '현재 비밀번호를 입력해주세요',
               })}
               error={!!passwordErrors.currentPassword}
-              helperText={passwordErrors.currentPassword?.message}
+              helperText={passwordErrors.currentPassword?.message as string}
             />
             <TextField
               fullWidth
@@ -249,7 +249,7 @@ const ProfilePage: React.FC = () => {
                 },
               })}
               error={!!passwordErrors.newPassword}
-              helperText={passwordErrors.newPassword?.message}
+              helperText={passwordErrors.newPassword?.message as string}
             />
           </DialogContent>
           <DialogActions>
