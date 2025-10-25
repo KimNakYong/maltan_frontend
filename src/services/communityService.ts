@@ -49,6 +49,7 @@ export interface Comment {
   id: number;
   postId: number;
   userId: number;
+  userName?: string;
   parentCommentId?: number;
   content: string;
   likeCount: number;
