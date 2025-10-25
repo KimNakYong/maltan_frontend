@@ -222,8 +222,8 @@ const CommunityWritePage: React.FC = () => {
       }
 
       let post;
-      if (isEditMode && id) {
-        post = await updatePost(parseInt(id), request);
+      if (isEditMode && id && user?.id) {
+        post = await updatePost(parseInt(id), request, parseInt(user.id));
       } else {
         post = await createPost(request);
       }

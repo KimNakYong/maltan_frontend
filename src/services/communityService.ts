@@ -154,8 +154,8 @@ export const createPost = async (data: CreatePostRequest): Promise<Post> => {
 };
 
 // 게시글 수정
-export const updatePost = async (postId: number, data: Partial<CreatePostRequest>): Promise<Post> => {
-  const response = await api.put(`/api/community/posts/${postId}`, data);
+export const updatePost = async (postId: number, data: Partial<CreatePostRequest>, userId?: number): Promise<Post> => {
+  const response = await api.put(`/api/community/posts/${postId}${userId ? `?userId=${userId}` : ''}`, data);
   // Backend에서 {post: {...}} 형태로 반환하므로 post 추출
   return response.data.post || response.data;
 };
