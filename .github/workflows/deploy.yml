@@ -27,8 +27,12 @@ jobs:
           node-version: '18'
           cache: 'npm'
       
-      - name: Install dependencies
-        run: npm ci
+      - name: Clean cache and install dependencies
+        run: |
+          rm -rf node_modules
+          rm -rf build
+          npm cache clean --force
+          npm ci
       
       - name: Create .env file
         run: |
@@ -42,9 +46,10 @@ jobs:
       - name: Deploy to Nginx
         run: |
           # 빌드 파일 확인
-          ls -la dist/
+          echo "Checking build directory..."
+          ls -la build/
           echo "Checking API URL in build..."
-          grep -r "localhost" dist/assets/*.js || echo "No localhost found"
+          grep -r "localhost" build/assets/*.js || echo "No localhost found"
           
           # 배포 디렉토리 생성
           sudo mkdir -p /var/www/maltan-frontend
@@ -53,7 +58,7 @@ jobs:
           sudo rm -rf /var/www/maltan-frontend/*
           
           # 빌드 파일 복사
-          sudo cp -r dist/* /var/www/maltan-frontend/
+          sudo cp -r build/* /var/www/maltan-frontend/
           
           # 권한 설정
           sudo chown -R www-data:www-data /var/www/maltan-frontend
