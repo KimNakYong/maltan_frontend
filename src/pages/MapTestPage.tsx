@@ -307,10 +307,10 @@ const MapTestPage: React.FC = () => {
         </Paper>
       )}
 
-      {/* 통계 정보 */}
+      {/* 통계 및 디버그 정보 */}
       <Paper sx={{ p: 2, mt: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={3}>
             <Typography variant="body2" color="text.secondary">
               총 검색 결과
             </Typography>
@@ -318,7 +318,7 @@ const MapTestPage: React.FC = () => {
               {places.length}개
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={3}>
             <Typography variant="body2" color="text.secondary">
               지도 중심
             </Typography>
@@ -326,7 +326,7 @@ const MapTestPage: React.FC = () => {
               {center.lat.toFixed(4)}, {center.lng.toFixed(4)}
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={3}>
             <Typography variant="body2" color="text.secondary">
               검색 반경
             </Typography>
@@ -334,7 +334,29 @@ const MapTestPage: React.FC = () => {
               {radius} km
             </Typography>
           </Grid>
+          <Grid item xs={12} sm={3}>
+            <Typography variant="body2" color="text.secondary">
+              API 상태
+            </Typography>
+            <Typography variant="body2" color={places.length > 0 ? 'success.main' : 'warning.main'}>
+              {loading ? '검색 중...' : places.length > 0 ? '정상 연결' : 'DB 데이터 없음'}
+            </Typography>
+          </Grid>
         </Grid>
+        
+        {places.length === 0 && !loading && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <Typography variant="body2" fontWeight="bold" gutterBottom>
+              Place Service DB에 데이터가 없거나 검색 범위 내에 장소가 없습니다
+            </Typography>
+            <Typography variant="caption">
+              • API 엔드포인트: <code>/api/place-service/places/nearby</code><br />
+              • 검색 위치: {center.lat.toFixed(6)}, {center.lng.toFixed(6)}<br />
+              • 검색 반경: {radius}km<br />
+              • 해결 방법: Place Service DB에 샘플 데이터를 추가하거나 다른 위치를 검색해보세요
+            </Typography>
+          </Alert>
+        )}
       </Paper>
     </Box>
   );

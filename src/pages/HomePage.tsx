@@ -142,20 +142,58 @@ const HomePage: React.FC = () => {
       {/* 선호 지역 기반 지도 및 주변 장소 */}
       {isAuthenticated && preferredRegions.length > 0 && (
         <Paper sx={{ p: 3, mb: 4 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="h5" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <LocationOnIcon color="primary" />
               내 관심 지역 주변 장소
             </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={() => loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude, selectedCategory || undefined)}
-              disabled={loadingPlaces}
-            >
-              새로고침
-            </Button>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                반경:
+              </Typography>
+              <Button
+                size="small"
+                variant={radius === 1 ? 'contained' : 'outlined'}
+                onClick={async () => {
+                  setRadius(1);
+                  const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 1);
+                  setPlaces(nearbyPlaces);
+                }}
+              >
+                1km
+              </Button>
+              <Button
+                size="small"
+                variant={radius === 3 ? 'contained' : 'outlined'}
+                onClick={async () => {
+                  setRadius(3);
+                  const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 3);
+                  setPlaces(nearbyPlaces);
+                }}
+              >
+                3km
+              </Button>
+              <Button
+                size="small"
+                variant={radius === 5 ? 'contained' : 'outlined'}
+                onClick={async () => {
+                  setRadius(5);
+                  const nearbyPlaces = await getNearbyPlaces(mapCenter.latitude, mapCenter.longitude, 5);
+                  setPlaces(nearbyPlaces);
+                }}
+              >
+                5km
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => loadNearbyPlaces(mapCenter.latitude, mapCenter.longitude, selectedCategory || undefined)}
+                disabled={loadingPlaces}
+              >
+                새로고침
+              </Button>
+            </Box>
           </Box>
           
           {loading && (
@@ -252,6 +290,18 @@ const HomePage: React.FC = () => {
                 ))}
 
                 {/* 주변 장소 목록 */}
+                {!loadingPlaces && places.length === 0 && (
+                  <Alert severity="info" sx={{ mt: 3 }}>
+                    <Typography variant="body2" fontWeight="bold" gutterBottom>
+                      주변에 등록된 장소가 없습니다
+                    </Typography>
+                    <Typography variant="caption">
+                      • 다른 관심 지역을 선택해보세요<br />
+                      • 지도를 클릭하여 다른 위치를 검색해보세요<br />
+                      • 검색 반경을 늘려보세요 (현재: {radius}km)
+                    </Typography>
+                  </Alert>
+                )}
                 {places.length > 0 && (
                   <>
                     <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ mt: 3 }}>
@@ -277,20 +327,32 @@ const HomePage: React.FC = () => {
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                               {place.address}
                             </Typography>
+                            {place.description && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                {place.description.length > 50 ? `${place.description.substring(0, 50)}...` : place.description}
+                              </Typography>
+                            )}
                             {place.averageRating && (
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                                 <Rating value={place.averageRating} precision={0.1} size="small" readOnly />
                                 <Typography variant="caption">
-                                  {place.averageRating.toFixed(1)}
+                                  {place.averageRating.toFixed(1)} ({place.reviewCount || 0})
                                 </Typography>
                               </Box>
+                            )}
+                            {place.categoryName && (
+                              <Chip 
+                                label={place.categoryName} 
+                                size="small" 
+                                sx={{ mt: 0.5 }} 
+                              />
                             )}
                           </CardContent>
                         </Card>
                       ))}
                       {places.length > 5 && (
                         <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ display: 'block', mt: 1 }}>
-                          외 {places.length - 5}개 장소
+                          외 {places.length - 5}개 장소 (지도에서 확인)
                         </Typography>
                       )}
                     </Box>
