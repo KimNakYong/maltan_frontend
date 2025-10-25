@@ -50,14 +50,17 @@ class AuthService {
    * 로그인
    */
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>(API_ROUTES.AUTH.LOGIN, data);
+    const response = await apiClient.post(API_ROUTES.AUTH.LOGIN, data);
+    
+    // 백엔드 응답 구조: { success: true, message: "...", data: AuthResponse }
+    const authData = response.data.data || response.data;
     
     // 토큰 및 사용자 정보 저장
-    setLocalStorage(STORAGE_KEYS.ACCESS_TOKEN, response.data.accessToken);
-    setLocalStorage(STORAGE_KEYS.REFRESH_TOKEN, response.data.refreshToken);
-    setLocalStorage(STORAGE_KEYS.USER, response.data.user);
+    setLocalStorage(STORAGE_KEYS.ACCESS_TOKEN, authData.accessToken);
+    setLocalStorage(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
+    setLocalStorage(STORAGE_KEYS.USER, authData.user);
     
-    return response.data;
+    return authData;
   }
 
   /**
