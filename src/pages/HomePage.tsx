@@ -8,7 +8,7 @@ import { getCoordinatesByDistrict, DEFAULT_COORDINATE } from '../utils/regionCoo
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
   
   const [preferredRegions, setPreferredRegions] = useState<PreferredRegion[]>([]);
   const [loading, setLoading] = useState(false);
