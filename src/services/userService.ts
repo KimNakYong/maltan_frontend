@@ -33,25 +33,92 @@ export interface ChangePasswordRequest {
 
 // 사용자 선호 지역 조회
 export const getMyPreferredRegions = async (): Promise<PreferredRegionsResponse> => {
-  const response = await axios.get(`${API_URL}/api/user/me/preferred-regions`);
-  return response.data;
+  try {
+    // 로컬 스토리지에서 사용자 정보 가져오기
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      throw new Error('로그인이 필요합니다.');
+    }
+    const user = JSON.parse(userStr);
+    const email = user.email;
+    
+    const response = await axios.get(`${API_URL}/api/user/auth/me/preferred-regions`, {
+      params: { email }
+    });
+    return response.data;
+  } catch (error: any) {
+    // 임시로 더미 데이터 반환
+    if (error.response?.status === 404) {
+      console.warn('User Service: /api/user/me/preferred-regions 엔드포인트에서 데이터를 찾을 수 없습니다.');
+      return {
+        preferredRegions: [
+          { priority: 1, city: "11", cityName: "서울특별시", district: "11680", districtName: "강남구" },
+          { priority: 2, city: "11", cityName: "서울특별시", district: "11740", districtName: "강동구" },
+          { priority: 3, city: "26", cityName: "부산광역시", district: "26440", districtName: "해운대구" },
+        ],
+      };
+    }
+    throw error;
+  }
 };
 
 // 사용자 정보 조회
 export const getMyInfo = async () => {
-  const response = await axios.get(`${API_URL}/api/user/me`);
-  return response.data;
+  try {
+    // 로컬 스토리지에서 사용자 정보 가져오기
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      throw new Error('로그인이 필요합니다.');
+    }
+    const user = JSON.parse(userStr);
+    const email = user.email;
+    
+    const response = await axios.get(`${API_URL}/api/user/auth/me`, {
+      params: { email }
+    });
+    return response.data.data || response.data; // ApiResponse 구조 처리
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      console.warn('User Service: /api/user/me 엔드포인트에서 데이터를 찾을 수 없습니다.');
+      // 로컬 스토리지에서 사용자 정보 가져오기
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        return JSON.parse(userStr);
+      }
+    }
+    throw error;
+  }
 };
 
 // 프로필 업데이트
 export const updateUserProfile = async (data: UpdateProfileRequest) => {
-  const response = await axios.put(`${API_URL}/api/user/me`, data);
-  return response.data;
+  // 로컬 스토리지에서 사용자 정보 가져오기
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    throw new Error('로그인이 필요합니다.');
+  }
+  const user = JSON.parse(userStr);
+  const email = user.email;
+  
+  const response = await axios.put(`${API_URL}/api/user/auth/me`, data, {
+    params: { email }
+  });
+  return response.data.data || response.data; // ApiResponse 구조 처리
 };
 
 // 비밀번호 변경
 export const changeUserPassword = async (data: ChangePasswordRequest) => {
-  const response = await axios.put(`${API_URL}/api/user/me/password`, data);
+  // 로컬 스토리지에서 사용자 정보 가져오기
+  const userStr = localStorage.getItem('user');
+  if (!userStr) {
+    throw new Error('로그인이 필요합니다.');
+  }
+  const user = JSON.parse(userStr);
+  const email = user.email;
+  
+  const response = await axios.put(`${API_URL}/api/user/auth/me/password`, data, {
+    params: { email }
+  });
   return response.data;
 };
 

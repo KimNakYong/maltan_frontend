@@ -64,14 +64,17 @@ class AuthService {
    * 회원가입
    */
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiClient.post<AuthResponse>(API_ROUTES.AUTH.REGISTER, data);
+    const response = await apiClient.post(API_ROUTES.AUTH.REGISTER, data);
     
-    // 회원가입 후 자동 로그인
-    setLocalStorage(STORAGE_KEYS.ACCESS_TOKEN, response.data.accessToken);
-    setLocalStorage(STORAGE_KEYS.REFRESH_TOKEN, response.data.refreshToken);
-    setLocalStorage(STORAGE_KEYS.USER, response.data.user);
+    // 백엔드 응답 구조: { success: true, message: "...", data: AuthResponse }
+    const authData = response.data.data || response.data;
     
-    return response.data;
+    // 회원가입 후 자동 로그인 상태로 설정
+    setLocalStorage(STORAGE_KEYS.ACCESS_TOKEN, authData.accessToken);
+    setLocalStorage(STORAGE_KEYS.REFRESH_TOKEN, authData.refreshToken);
+    setLocalStorage(STORAGE_KEYS.USER, authData.user);
+    
+    return authData;
   }
 
   /**
