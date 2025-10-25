@@ -50,6 +50,15 @@ export interface UserStats {
   inactiveUsers: number;
 }
 
+export interface CommunityStats {
+  totalPosts: number;
+  totalComments: number;
+  totalRecruitmentPosts: number;
+  activeRecruitmentPosts: number;
+  totalVotes: number;
+  totalParticipants: number;
+}
+
 // 사용자 목록 조회
 export const getUsers = async (page: number = 0, size: number = 10, search?: string): Promise<UsersResponse> => {
   const params: any = { page, size };
@@ -201,7 +210,25 @@ export const getSystemMetrics = async (): Promise<SystemMetrics> => {
 };
 
 // === 커뮤니티 관리 API ===
-// (기존 communityService.ts의 API를 재사용)
+
+// 커뮤니티 통계 조회
+export const getCommunityStats = async (): Promise<CommunityStats> => {
+  try {
+    const response = await api.get('/api/community/statistics');
+    return response.data;
+  } catch (error) {
+    console.error('커뮤니티 통계 조회 실패:', error);
+    // 에러 시 기본값 반환
+    return {
+      totalPosts: 0,
+      totalComments: 0,
+      totalRecruitmentPosts: 0,
+      activeRecruitmentPosts: 0,
+      totalVotes: 0,
+      totalParticipants: 0,
+    };
+  }
+};
 
 export { getPosts, getPost } from './communityService';
 

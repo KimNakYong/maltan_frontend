@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -12,6 +12,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   BarChart,
@@ -28,6 +29,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { getUserStats, getCommunityStats, UserStats, CommunityStats } from '../../services/adminService';
 
 // Mock 데이터
 const userGrowthData = [
@@ -77,6 +79,37 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 const StatisticsPage: React.FC = () => {
   const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const [users, community] = await Promise.all([
+        getUserStats(),
+        getCommunityStats(),
+      ]);
+      setUserStats(users);
+      setCommunityStats(community);
+    } catch (error) {
+      console.error('통계 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -121,25 +154,10 @@ const StatisticsPage: React.FC = () => {
                 총 사용자
               </Typography>
               <Typography variant="h4" fontWeight="bold">
-                1,450
+                {userStats?.totalUsers.toLocaleString() || 0}
               </Typography>
-              <Typography variant="body2" color="success.main">
-                +12.5% 전월 대비
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="body2">
-                활성 사용자 (MAU)
-              </Typography>
-              <Typography variant="h4" fontWeight="bold">
-                1,190
-              </Typography>
-              <Typography variant="body2" color="success.main">
-                82.1% 활성률
+              <Typography variant="body2" color="text.secondary">
+                활성: {userStats?.activeUsers || 0}명
               </Typography>
             </CardContent>
           </Card>
@@ -148,13 +166,13 @@ const StatisticsPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="body2">
-                등록된 장소
+                커뮤니티 게시글
               </Typography>
               <Typography variant="h4" fontWeight="bold">
-                1,500
+                {communityStats?.totalPosts.toLocaleString() || 0}
               </Typography>
-              <Typography variant="body2" color="success.main">
-                +8.3% 전월 대비
+              <Typography variant="body2" color="text.secondary">
+                모집: {communityStats?.totalRecruitmentPosts || 0}개
               </Typography>
             </CardContent>
           </Card>
@@ -163,13 +181,28 @@ const StatisticsPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="body2">
-                커뮤니티 글
+                댓글
               </Typography>
               <Typography variant="h4" fontWeight="bold">
-                3,280
+                {communityStats?.totalComments.toLocaleString() || 0}
               </Typography>
-              <Typography variant="body2" color="success.main">
-                +15.7% 전월 대비
+              <Typography variant="body2" color="text.secondary">
+                전체 댓글 수
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary" gutterBottom variant="body2">
+                활동 지표
+              </Typography>
+              <Typography variant="h4" fontWeight="bold">
+                {communityStats?.totalVotes.toLocaleString() || 0}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                총 투표 수
               </Typography>
             </CardContent>
           </Card>
