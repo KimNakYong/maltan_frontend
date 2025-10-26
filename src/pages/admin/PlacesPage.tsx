@@ -227,16 +227,26 @@ const PlacesPage: React.FC = () => {
         isActive: true,
       };
 
+      let savedPlace: Place;
       if (editingPlace) {
-        await updatePlace(editingPlace.id, placeData);
+        savedPlace = await updatePlace(editingPlace.id, placeData);
         toast.success('장소가 수정되었습니다');
+        
+        // 수정된 장소의 photos를 유지하기 위해 places 배열 업데이트
+        setPlaces((prevPlaces) =>
+          prevPlaces.map((p) =>
+            p.id === savedPlace.id ? { ...savedPlace, photos: placePhotos } : p
+          )
+        );
       } else {
-        await createPlace(placeData);
+        savedPlace = await createPlace(placeData);
         toast.success('장소가 추가되었습니다');
+        
+        // 새로 추가된 장소를 places 배열에 추가
+        setPlaces((prevPlaces) => [savedPlace, ...prevPlaces]);
       }
 
       handleCloseDialog();
-      loadData();
     } catch (error) {
       console.error('저장 실패:', error);
       toast.error('저장에 실패했습니다');
