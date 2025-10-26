@@ -48,6 +48,22 @@ const sumValues = (data: any): number => {
   }
 };
 
+// Prometheus 여러 결과 합산 (양수 값만, -1 제외)
+const sumPositiveValues = (data: any): number => {
+  try {
+    if (data?.result && data.result.length > 0) {
+      return data.result.reduce((sum: number, item: any) => {
+        const value = parseFloat(item.value[1]);
+        // -1이 아니고 유효한 숫자인 경우만 합산
+        return sum + (isNaN(value) || value < 0 ? 0 : value);
+      }, 0);
+    }
+    return 0;
+  } catch (error) {
+    return 0;
+  }
+};
+
 // === 인터페이스 정의 ===
 
 export interface SystemMetrics {
@@ -188,13 +204,20 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
         const cpuData = await queryPrometheus(`process_cpu_usage{job="${service}"}`);
         const cpuUsage = extractValue(cpuData, 0) * 100;
 
-        // Memory Usage (모든 heap 영역 합산)
-        // sum() 대신 개별 메트릭을 가져와서 프론트엔드에서 합산
+        // Memory Usage (G1 GC 영역별 합산)
+        // G1 GC는 max가 -1인 영역이 있으므로 committed를 fallback으로 사용
         const memoryUsedData = await queryPrometheus(`jvm_memory_used_bytes{job="${service}",area="heap"}`);
         const memoryMaxData = await queryPrometheus(`jvm_memory_max_bytes{job="${service}",area="heap"}`);
+        const memoryCommittedData = await queryPrometheus(`jvm_memory_committed_bytes{job="${service}",area="heap"}`);
         
         const memoryUsed = sumValues(memoryUsedData);
-        const memoryLimit = sumValues(memoryMaxData);
+        let memoryLimit = sumPositiveValues(memoryMaxData); // -1 제외하고 합산
+        
+        // max가 모두 -1이면 committed 사용
+        if (memoryLimit <= 0) {
+          memoryLimit = sumValues(memoryCommittedData);
+        }
+        
         const memoryUsage = memoryLimit > 0 ? (memoryUsed / memoryLimit) * 100 : 0;
 
         return {
@@ -243,6 +266,7 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
     const mysqlServices = ['user-service', 'place-service'];
     let mysqlTotalActive = 0;
     let mysqlTotalMax = 0;
+    let mysqlTotalConnections = 0;
     let mysqlUptime = 0;
     let mysqlStatus = 'DOWN';
     
@@ -250,20 +274,25 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
       try {
         const activeData = await queryPrometheus(`hikaricp_connections_active{job="${service}"}`);
         const maxData = await queryPrometheus(`hikaricp_connections_max{job="${service}"}`);
+        const connectionsData = await queryPrometheus(`hikaricp_connections{job="${service}"}`);
         const uptimeData = await queryPrometheus(`process_uptime_seconds{job="${service}"}`);
         
         const active = extractValue(activeData, 0);
         const max = extractValue(maxData, 0);
+        const connections = extractValue(connectionsData, 0);
         const uptime = extractValue(uptimeData, 0);
+        
+        console.log(`[DB 메트릭] ${service}: active=${active}, max=${max}, connections=${connections}`);
         
         if (max > 0) {
           mysqlStatus = 'UP';
           mysqlTotalActive += active;
           mysqlTotalMax += max;
+          mysqlTotalConnections += connections;
           if (uptime > mysqlUptime) mysqlUptime = uptime;
         }
       } catch (error) {
-        // 서비스 메트릭 조회 실패 시 무시
+        console.error(`[DB 메트릭 에러] ${service}:`, error);
       }
     }
     
@@ -271,7 +300,7 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
       databaseName: 'MySQL (User/Place)',
       type: 'mysql',
       status: mysqlStatus,
-      connections: Math.round(mysqlTotalActive),
+      connections: Math.round(mysqlTotalConnections), // 전체 풀 연결 수
       maxConnections: Math.round(mysqlTotalMax),
       connectionUsage: mysqlTotalMax > 0 ? (mysqlTotalActive / mysqlTotalMax) * 100 : 0,
       databaseSize: 0, // DB exporter 필요
@@ -284,6 +313,7 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
     const pgServices = ['community-service', 'recommendation-service'];
     let pgTotalActive = 0;
     let pgTotalMax = 0;
+    let pgTotalConnections = 0;
     let pgUptime = 0;
     let pgStatus = 'DOWN';
     
@@ -291,20 +321,25 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
       try {
         const activeData = await queryPrometheus(`hikaricp_connections_active{job="${service}"}`);
         const maxData = await queryPrometheus(`hikaricp_connections_max{job="${service}"}`);
+        const connectionsData = await queryPrometheus(`hikaricp_connections{job="${service}"}`);
         const uptimeData = await queryPrometheus(`process_uptime_seconds{job="${service}"}`);
         
         const active = extractValue(activeData, 0);
         const max = extractValue(maxData, 0);
+        const connections = extractValue(connectionsData, 0);
         const uptime = extractValue(uptimeData, 0);
+        
+        console.log(`[DB 메트릭] ${service}: active=${active}, max=${max}, connections=${connections}`);
         
         if (max > 0) {
           pgStatus = 'UP';
           pgTotalActive += active;
           pgTotalMax += max;
+          pgTotalConnections += connections;
           if (uptime > pgUptime) pgUptime = uptime;
         }
       } catch (error) {
-        // 서비스 메트릭 조회 실패 시 무시
+        console.error(`[DB 메트릭 에러] ${service}:`, error);
       }
     }
     
@@ -312,7 +347,7 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
       databaseName: 'PostgreSQL (Community/Recommendation)',
       type: 'postgresql',
       status: pgStatus,
-      connections: Math.round(pgTotalActive),
+      connections: Math.round(pgTotalConnections), // 전체 풀 연결 수
       maxConnections: Math.round(pgTotalMax),
       connectionUsage: pgTotalMax > 0 ? (pgTotalActive / pgTotalMax) * 100 : 0,
       databaseSize: 0, // DB exporter 필요
@@ -321,21 +356,18 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
       uptime: Math.round(pgUptime),
     });
     
-    // Redis - Gateway Service의 연결 정보 활용
+    // Redis - Gateway Service가 UP이면 Redis도 UP으로 간주
     try {
-      const redisActiveData = await queryPrometheus(`redis_connections_active{job="gateway-service"}`);
-      const redisMaxData = await queryPrometheus(`redis_connections_max{job="gateway-service"}`);
-      
-      const redisActive = extractValue(redisActiveData, 0);
-      const redisMax = extractValue(redisMaxData, 10000); // 기본값
+      const gatewayUpData = await queryPrometheus(`up{job="gateway-service"}`);
+      const isGatewayUp = extractValue(gatewayUpData, 0) === 1;
       
       databases.push({
         databaseName: 'Redis',
         type: 'redis',
-        status: 'UP', // Gateway가 UP이면 Redis도 UP으로 간주
-        connections: Math.round(redisActive),
-        maxConnections: Math.round(redisMax),
-        connectionUsage: redisMax > 0 ? (redisActive / redisMax) * 100 : 0,
+        status: isGatewayUp ? 'UP' : 'DOWN',
+        connections: 0, // Redis는 HikariCP 메트릭 없음
+        maxConnections: 10000,
+        connectionUsage: 0,
         databaseSize: 0,
         tableCount: 0,
         version: '7.0',
