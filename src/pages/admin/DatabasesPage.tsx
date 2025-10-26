@@ -9,8 +9,9 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Chip,
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import { Refresh, CheckCircle, Cancel, HelpOutline, Storage } from '@mui/icons-material';
 import { getDatabaseMetrics, DatabaseMetrics } from '../../services/monitoringService';
 import { formatTime } from '../../utils/dateUtils';
 
@@ -19,6 +20,38 @@ const DatabasesPage: React.FC = () => {
   const [databaseMetrics, setDatabaseMetrics] = useState<DatabaseMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 상태에 따른 스타일 반환
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'UP':
+        return {
+          color: 'success' as const,
+          icon: <CheckCircle />,
+          label: 'UP',
+          bgColor: '#4caf50',
+        };
+      case 'DOWN':
+        return {
+          color: 'error' as const,
+          icon: <Cancel />,
+          label: 'DOWN',
+          bgColor: '#f44336',
+        };
+      default:
+        return {
+          color: 'default' as const,
+          icon: <HelpOutline />,
+          label: 'UNKNOWN',
+          bgColor: '#9e9e9e',
+        };
+    }
+  };
+
+  // DB 타입에 따른 아이콘 반환
+  const getDbIcon = (type: string) => {
+    return <Storage />;
+  };
 
   const loadMetrics = async () => {
     try {
@@ -103,28 +136,52 @@ const DatabasesPage: React.FC = () => {
       )}
 
       <Grid container spacing={3}>
-        {databaseMetrics.map((db) => (
-          <Grid item xs={12} md={6} lg={4} key={db.databaseName}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" fontWeight="bold">
-                    {db.databaseName}
-                  </Typography>
-                  <Box
-                    sx={{
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 1,
-                      bgcolor: db.status === 'running' ? 'success.light' : 'error.light',
-                      color: db.status === 'running' ? 'success.dark' : 'error.dark',
-                    }}
-                  >
-                    <Typography variant="caption" fontWeight="bold">
-                      {db.status === 'running' ? '실행 중' : db.status}
-                    </Typography>
+        {databaseMetrics.map((db) => {
+          const statusStyle = getStatusStyle(db.status);
+          return (
+            <Grid item xs={12} md={6} lg={4} key={db.databaseName}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {getDbIcon(db.type)}
+                      <Typography variant="h6" fontWeight="bold">
+                        {db.databaseName}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      icon={statusStyle.icon}
+                      label={statusStyle.label}
+                      color={statusStyle.color}
+                      size="medium"
+                      sx={{
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem',
+                        height: '32px',
+                        animation: db.status === 'UP' 
+                          ? 'pulse-green 2s ease-in-out infinite' 
+                          : db.status === 'DOWN' 
+                          ? 'pulse-red 2s ease-in-out infinite' 
+                          : 'none',
+                        '@keyframes pulse-green': {
+                          '0%, 100%': {
+                            boxShadow: `0 0 0 0 ${statusStyle.bgColor}80`,
+                          },
+                          '50%': {
+                            boxShadow: `0 0 8px 4px ${statusStyle.bgColor}40`,
+                          },
+                        },
+                        '@keyframes pulse-red': {
+                          '0%, 100%': {
+                            boxShadow: `0 0 0 0 ${statusStyle.bgColor}80`,
+                          },
+                          '50%': {
+                            boxShadow: `0 0 8px 4px ${statusStyle.bgColor}40`,
+                          },
+                        },
+                      }}
+                    />
                   </Box>
-                </Box>
 
                 {/* 연결 사용률 */}
                 <Box sx={{ mb: 2 }}>
@@ -169,7 +226,8 @@ const DatabasesPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-        ))}
+        );
+        })}
       </Grid>
     </Box>
   );

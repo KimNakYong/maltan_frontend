@@ -42,6 +42,26 @@ server {
         try_files $uri $uri/ /index.html;
     }
     
+    # Prometheus 프록시 (모니터링) - /api/ 보다 먼저 정의해야 함
+    location /api/prometheus/ {
+        proxy_pass http://localhost:9090/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Loki 프록시 (로그 수집) - /api/ 보다 먼저 정의해야 함
+    location /api/loki/ {
+        proxy_pass http://localhost:3100/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
     # API 프록시 (백엔드로 전달)
     location /api/ {
         proxy_pass http://localhost:8080/api/;
@@ -50,16 +70,6 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    # Prometheus 프록시 (모니터링)
-    location /api/prometheus/ {
-        proxy_pass http://localhost:9090/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;

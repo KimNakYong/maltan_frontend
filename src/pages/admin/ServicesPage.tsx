@@ -9,8 +9,9 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Chip,
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import { Refresh, CheckCircle, Cancel, HelpOutline } from '@mui/icons-material';
 import { getServicesMetrics, ServiceMetrics } from '../../services/monitoringService';
 import { formatTime } from '../../utils/dateUtils';
 
@@ -19,6 +20,33 @@ const ServicesPage: React.FC = () => {
   const [servicesMetrics, setServicesMetrics] = useState<ServiceMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 상태에 따른 스타일 반환
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'UP':
+        return {
+          color: 'success' as const,
+          icon: <CheckCircle />,
+          label: 'UP',
+          bgColor: '#4caf50',
+        };
+      case 'DOWN':
+        return {
+          color: 'error' as const,
+          icon: <Cancel />,
+          label: 'DOWN',
+          bgColor: '#f44336',
+        };
+      default:
+        return {
+          color: 'default' as const,
+          icon: <HelpOutline />,
+          label: 'UNKNOWN',
+          bgColor: '#9e9e9e',
+        };
+    }
+  };
 
   const loadMetrics = async () => {
     try {
@@ -103,28 +131,49 @@ const ServicesPage: React.FC = () => {
       )}
 
       <Grid container spacing={3}>
-        {servicesMetrics.map((service) => (
-          <Grid item xs={12} md={6} lg={4} key={service.serviceName}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6" fontWeight="bold">
-                    {service.serviceName}
-                  </Typography>
-                  <Box
-                    sx={{
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 1,
-                      bgcolor: service.status === 'running' ? 'success.light' : 'error.light',
-                      color: service.status === 'running' ? 'success.dark' : 'error.dark',
-                    }}
-                  >
-                    <Typography variant="caption" fontWeight="bold">
-                      {service.status === 'running' ? '실행 중' : service.status}
+        {servicesMetrics.map((service) => {
+          const statusStyle = getStatusStyle(service.status);
+          return (
+            <Grid item xs={12} md={6} lg={4} key={service.serviceName}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" fontWeight="bold">
+                      {service.serviceName}
                     </Typography>
+                    <Chip
+                      icon={statusStyle.icon}
+                      label={statusStyle.label}
+                      color={statusStyle.color}
+                      size="medium"
+                      sx={{
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem',
+                        height: '32px',
+                        animation: service.status === 'UP' 
+                          ? 'pulse-green 2s ease-in-out infinite' 
+                          : service.status === 'DOWN' 
+                          ? 'pulse-red 2s ease-in-out infinite' 
+                          : 'none',
+                        '@keyframes pulse-green': {
+                          '0%, 100%': {
+                            boxShadow: `0 0 0 0 ${statusStyle.bgColor}80`,
+                          },
+                          '50%': {
+                            boxShadow: `0 0 8px 4px ${statusStyle.bgColor}40`,
+                          },
+                        },
+                        '@keyframes pulse-red': {
+                          '0%, 100%': {
+                            boxShadow: `0 0 0 0 ${statusStyle.bgColor}80`,
+                          },
+                          '50%': {
+                            boxShadow: `0 0 8px 4px ${statusStyle.bgColor}40`,
+                          },
+                        },
+                      }}
+                    />
                   </Box>
-                </Box>
 
                 {/* CPU 사용률 */}
                 <Box sx={{ mb: 2 }}>
@@ -167,7 +216,8 @@ const ServicesPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
-        ))}
+        );
+        })}
       </Grid>
     </Box>
   );

@@ -269,17 +269,80 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
 };
 
 /**
- * 시스템 로그 조회 (Prometheus에서는 로그를 저장하지 않음)
+ * 시스템 로그 조회 (Loki API 사용)
  */
 export const getSystemLogs = async (
-  _limit: number = 100,
-  _service?: string,
-  _level?: string
+  limit: number = 100,
+  service?: string,
+  level?: string
 ): Promise<SystemLog[]> => {
-  // Prometheus는 로그를 저장하지 않습니다.
-  // 로그를 보려면 Loki 같은 별도 로그 시스템이 필요합니다.
-  console.warn('로그는 Prometheus에서 제공하지 않습니다. Loki 설치를 고려하세요.');
-  return [];
+  try {
+    const LOKI_URL = '/api/loki';
+    
+    // LogQL 쿼리 생성
+    let query = '{container=~".+"}'; // 모든 컨테이너
+    
+    // 서비스 필터
+    if (service && service !== 'all') {
+      query = `{service="${service.toLowerCase()}-service"}`;
+    }
+    
+    // 레벨 필터 (로그 내용에서 검색)
+    if (level && level !== 'all') {
+      query += ` |~ "${level}"`;
+    }
+    
+    // Loki query_range API 호출
+    const end = Math.floor(Date.now() / 1000); // 현재 시간 (초)
+    const start = end - 3600; // 1시간 전
+    
+    const response = await axios.get(`${LOKI_URL}/loki/api/v1/query_range`, {
+      params: {
+        query: query,
+        start: start * 1000000000, // 나노초로 변환
+        end: end * 1000000000,
+        limit: limit,
+        direction: 'backward', // 최신 로그부터
+      },
+    });
+    
+    if (response.data?.data?.result) {
+      const logs: SystemLog[] = [];
+      
+      response.data.data.result.forEach((stream: any) => {
+        const labels = stream.stream;
+        const serviceName = labels.service || labels.container || 'unknown';
+        
+        stream.values.forEach((value: any, index: number) => {
+          const [timestamp, message] = value;
+          
+          // 로그 레벨 추출
+          let logLevel = 'INFO';
+          if (message.includes('ERROR')) logLevel = 'ERROR';
+          else if (message.includes('WARN')) logLevel = 'WARNING';
+          else if (message.includes('DEBUG')) logLevel = 'DEBUG';
+          
+          logs.push({
+            id: `${timestamp}-${index}`,
+            timestamp: new Date(parseInt(timestamp) / 1000000).toISOString(), // 나노초를 밀리초로 변환
+            level: logLevel,
+            service: serviceName,
+            message: message,
+          });
+        });
+      });
+      
+      // 시간 역순 정렬
+      return logs.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Loki 로그 조회 실패:', error);
+    return [];
+  }
 };
 
 /**
