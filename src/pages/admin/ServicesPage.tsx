@@ -210,7 +210,7 @@ const ServicesPage: React.FC = () => {
                     sx={{ height: 6, borderRadius: 1 }}
                   />
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                    {(service.memoryUsed / (1024 * 1024)).toFixed(0)} MB / {(service.memoryLimit / (1024 * 1024)).toFixed(0)} MB
+                    {service.memoryUsed.toFixed(0)} MB / {service.memoryLimit.toFixed(0)} MB
                   </Typography>
                 </Box>
               </CardContent>
