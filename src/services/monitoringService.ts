@@ -173,9 +173,9 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
         const cpuData = await queryPrometheus(`process_cpu_usage{job="${service}"}`);
         const cpuUsage = extractValue(cpuData, 0) * 100;
 
-        // Memory Usage
-        const memoryUsedData = await queryPrometheus(`jvm_memory_used_bytes{job="${service}",area="heap"}`);
-        const memoryMaxData = await queryPrometheus(`jvm_memory_max_bytes{job="${service}",area="heap"}`);
+        // Memory Usage (모든 heap 영역 합산)
+        const memoryUsedData = await queryPrometheus(`sum(jvm_memory_used_bytes{job="${service}",area="heap"})`);
+        const memoryMaxData = await queryPrometheus(`sum(jvm_memory_max_bytes{job="${service}",area="heap"})`);
         const memoryUsed = extractValue(memoryUsedData, 0);
         const memoryLimit = extractValue(memoryMaxData, 0);
         const memoryUsage = memoryLimit > 0 ? (memoryUsed / memoryLimit) * 100 : 0;
