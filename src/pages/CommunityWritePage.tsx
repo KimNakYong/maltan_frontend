@@ -17,6 +17,7 @@ import {
   Alert,
   Chip,
   CircularProgress,
+  Autocomplete,
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -26,6 +27,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { createPost, updatePost, getPost, CreatePostRequest } from '../services/communityService';
 import { CITIES, DISTRICTS } from '../utils/regionData';
 import { useAppSelector } from '../store/hooks';
+import { Place, searchPlaces } from '../services/placeService';
 
 const CommunityWritePage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,9 +58,9 @@ const CommunityWritePage: React.FC = () => {
   const [initialLoading, setInitialLoading] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
   const [placeSearchInput, setPlaceSearchInput] = useState('');
-  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const placeInputRef = useRef<HTMLInputElement>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [placeOptions, setPlaceOptions] = useState<Place[]>([]);
+  const [placeLoading, setPlaceLoading] = useState(false);
 
   const categories = ['자유', '질문', '정보', '모임', '봉사', '운동', '취미'];
 
@@ -104,8 +106,19 @@ const CommunityWritePage: React.FC = () => {
         address: post.address || '',
       });
       
+      // 장소 정보가 있으면 표시 (수정 모드)
       if (post.address) {
-        setPlaceSearchInput(post.address);
+        setPlaceSearchInput(post.eventLocation || post.address);
+        // 임시 Place 객체 생성 (실제 DB에서 가져온 것이 아니므로)
+        if (post.latitude && post.longitude) {
+          setSelectedPlace({
+            id: 0, // 임시 ID
+            name: post.eventLocation || '선택된 장소',
+            address: post.address,
+            latitude: post.latitude,
+            longitude: post.longitude,
+          } as Place);
+        }
       }
       
       // 시/도 이름 설정
@@ -122,31 +135,28 @@ const CommunityWritePage: React.FC = () => {
     }
   };
 
-  // Google Places Autocomplete 초기화
+  // Place DB에서 장소 검색
   useEffect(() => {
-    if (!placeInputRef.current || !window.google) return;
+    if (!placeSearchInput || placeSearchInput.length < 2) {
+      setPlaceOptions([]);
+      return;
+    }
 
-    const autocomplete = new window.google.maps.places.Autocomplete(placeInputRef.current, {
-      componentRestrictions: { country: 'kr' }, // 한국으로 제한
-      fields: ['formatted_address', 'geometry', 'name', 'place_id'],
-    });
-
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place.geometry && place.geometry.location) {
-        setSelectedPlace(place);
-        setFormData((prev) => ({
-          ...prev,
-          latitude: place.geometry!.location!.lat(),
-          longitude: place.geometry!.location!.lng(),
-          address: place.formatted_address || place.name || '',
-        }));
-        setPlaceSearchInput(place.name || place.formatted_address || '');
+    const timer = setTimeout(async () => {
+      setPlaceLoading(true);
+      try {
+        const response = await searchPlaces(placeSearchInput, undefined, 0, 20);
+        setPlaceOptions(response.content || []);
+      } catch (err) {
+        console.error('장소 검색 실패:', err);
+        setPlaceOptions([]);
+      } finally {
+        setPlaceLoading(false);
       }
-    });
+    }, 300); // 300ms debounce
 
-    autocompleteRef.current = autocomplete;
-  }, []);
+    return () => clearTimeout(timer);
+  }, [placeSearchInput]);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -436,24 +446,71 @@ const CommunityWritePage: React.FC = () => {
               장소 추가 (선택사항)
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-              추천하는 식당, 카페, 장소 등을 검색하여 지도에 표시할 수 있습니다.
+              등록된 장소 중에서 선택할 수 있습니다. (등록되지 않은 장소는 관리자 페이지에서 먼저 등록해주세요)
             </Typography>
-            <TextField
+            <Autocomplete
               fullWidth
-              inputRef={placeInputRef}
-              label="장소 검색 (예: 스타벅스 강남점)"
-              value={placeSearchInput}
-              onChange={(e) => setPlaceSearchInput(e.target.value)}
-              placeholder="장소 이름이나 주소를 입력하세요"
-              InputProps={{
-                startAdornment: <LocationOnIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              options={placeOptions}
+              getOptionLabel={(option) => option.name}
+              loading={placeLoading}
+              value={selectedPlace}
+              inputValue={placeSearchInput}
+              onInputChange={(event, newInputValue) => {
+                setPlaceSearchInput(newInputValue);
               }}
+              onChange={(event, newValue) => {
+                setSelectedPlace(newValue);
+                if (newValue) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    latitude: newValue.latitude,
+                    longitude: newValue.longitude,
+                    address: newValue.address,
+                  }));
+                } else {
+                  handleClearLocation();
+                }
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="장소 검색 (예: 스타벅스 강남점)"
+                  placeholder="장소 이름이나 주소를 입력하세요 (2자 이상)"
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <>
+                        <LocationOnIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                        {params.InputProps.startAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              renderOption={(props, option) => (
+                <Box component="li" {...props} key={option.id}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <Typography variant="body1">{option.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {option.address}
+                      {option.categoryName && ` • ${option.categoryName}`}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+              noOptionsText={
+                placeSearchInput.length < 2
+                  ? "2자 이상 입력하세요"
+                  : placeLoading
+                  ? "검색 중..."
+                  : "검색 결과가 없습니다"
+              }
             />
             {selectedPlace && formData.address && (
               <Box sx={{ mt: 1 }}>
                 <Chip
                   icon={<LocationOnIcon />}
-                  label={formData.address}
+                  label={`${selectedPlace.name} - ${formData.address}`}
                   onDelete={handleClearLocation}
                   color="primary"
                   variant="outlined"
