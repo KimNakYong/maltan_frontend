@@ -65,13 +65,6 @@ const ServicesPage: React.FC = () => {
 
   useEffect(() => {
     loadMetrics();
-    
-        // 30초마다 자동 새로고침 (Ngrok rate limit 대응)
-        const interval = setInterval(() => {
-          loadMetrics();
-        }, 30000);
-
-    return () => clearInterval(interval);
   }, []);
 
   if (loading && servicesMetrics.length === 0) {
@@ -111,7 +104,7 @@ const ServicesPage: React.FC = () => {
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              마지막 업데이트: {formatTime(refreshTime)} (30초마다 자동 갱신)
+              마지막 업데이트: {formatTime(refreshTime)}
             </Typography>
           <Button
             variant="outlined"
