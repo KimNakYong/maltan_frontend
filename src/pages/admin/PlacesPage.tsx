@@ -25,12 +25,14 @@ import {
   Alert,
   Grid,
   Tooltip,
+  Divider,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
+  MyLocation as MyLocationIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import {
@@ -41,6 +43,7 @@ import {
   deletePlace,
 } from '../../services/placeService';
 import { Category, getCategoriesWithCount } from '../../services/categoryService';
+import GoogleMap from '../../components/GoogleMap';
 
 const PlacesPage: React.FC = () => {
   const [places, setPlaces] = useState<Place[]>([]);
@@ -59,6 +62,9 @@ const PlacesPage: React.FC = () => {
     website: '',
     openingHours: '',
   });
+  const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 });
+  const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
 
   // 데이터 로드
   useEffect(() => {
@@ -97,6 +103,9 @@ const PlacesPage: React.FC = () => {
         website: place.website || '',
         openingHours: place.openingHours || '',
       });
+      // 지도 중심과 마커 설정
+      setMapCenter({ lat: place.latitude, lng: place.longitude });
+      setMapMarker({ lat: place.latitude, lng: place.longitude });
     } else {
       setEditingPlace(null);
       setFormData({
@@ -110,6 +119,9 @@ const PlacesPage: React.FC = () => {
         website: '',
         openingHours: '',
       });
+      // 지도 초기화
+      setMapCenter({ lat: 37.5665, lng: 126.978 });
+      setMapMarker(null);
     }
     setOpenDialog(true);
   };
@@ -128,6 +140,59 @@ const PlacesPage: React.FC = () => {
 
   const handleSelectChange = (e: any) => {
     setFormData((prev) => ({ ...prev, categoryId: e.target.value }));
+  };
+
+  // 지도 클릭 이벤트 - 위도/경도 자동 입력 및 주소 역산
+  const handleMapClick = async (lat: number, lng: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat.toFixed(8),
+      longitude: lng.toFixed(8),
+    }));
+    setMapCenter({ lat, lng });
+    setMapMarker({ lat, lng });
+
+    // Geocoding API로 주소 가져오기
+    setGeocoding(true);
+    try {
+      const geocoder = new google.maps.Geocoder();
+      const response = await geocoder.geocode({ location: { lat, lng } });
+      
+      if (response.results && response.results.length > 0) {
+        const address = response.results[0].formatted_address;
+        setFormData((prev) => ({
+          ...prev,
+          address: address,
+        }));
+        toast.success('위치와 주소가 설정되었습니다');
+      } else {
+        toast.error('주소를 가져올 수 없습니다. 직접 입력해주세요.');
+      }
+    } catch (error) {
+      console.error('Geocoding 실패:', error);
+      toast.error('주소를 가져오는데 실패했습니다');
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
+  // 내 위치로 이동
+  const handleMyLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          handleMapClick(lat, lng);
+        },
+        (error) => {
+          console.error('위치 가져오기 실패:', error);
+          toast.error('현재 위치를 가져올 수 없습니다');
+        }
+      );
+    } else {
+      toast.error('브라우저가 위치 서비스를 지원하지 않습니다');
+    }
   };
 
   // 장소 저장
@@ -338,116 +403,171 @@ const PlacesPage: React.FC = () => {
       </Paper>
 
       {/* 장소 추가/수정 다이얼로그 */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
         <DialogTitle>{editingPlace ? '장소 수정' : '장소 추가'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="장소명"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-            </Grid>
+          <Grid container spacing={3} sx={{ mt: 0.5 }}>
+            {/* 왼쪽: 지도 */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>카테고리</InputLabel>
-                <Select value={formData.categoryId} onChange={handleSelectChange} label="카테고리">
-                  {categories.map((category) => (
-                    <MenuItem key={category.id} value={category.id}>
-                      {category.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">지도에서 위치 선택</Typography>
+                  <Button
+                    size="small"
+                    startIcon={<MyLocationIcon />}
+                    onClick={handleMyLocation}
+                    variant="outlined"
+                  >
+                    내 위치
+                  </Button>
+                </Box>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="caption">
+                    지도를 클릭하면 위도/경도와 주소가 자동으로 입력됩니다
+                  </Typography>
+                </Alert>
+                {geocoding && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={16} />
+                      <Typography variant="caption">주소를 가져오는 중...</Typography>
+                    </Box>
+                  </Alert>
+                )}
+                <GoogleMap
+                  center={mapCenter}
+                  zoom={15}
+                  markers={
+                    mapMarker
+                      ? [
+                          {
+                            id: 'selected',
+                            position: mapMarker,
+                            title: '선택된 위치',
+                          },
+                        ]
+                      : []
+                  }
+                  onMapClick={handleMapClick}
+                  style={{ width: '100%', height: '400px', borderRadius: '4px' }}
+                />
+              </Paper>
             </Grid>
+
+            {/* 오른쪽: 폼 */}
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="전화번호"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="02-1234-5678"
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="주소"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="위도"
-                name="latitude"
-                type="number"
-                value={formData.latitude}
-                onChange={handleInputChange}
-                required
-                placeholder="37.5665"
-                inputProps={{ step: 'any' }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="경도"
-                name="longitude"
-                type="number"
-                value={formData.longitude}
-                onChange={handleInputChange}
-                required
-                placeholder="126.978"
-                inputProps={{ step: 'any' }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="설명"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="웹사이트"
-                name="website"
-                value={formData.website}
-                onChange={handleInputChange}
-                placeholder="https://example.com"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="영업시간"
-                name="openingHours"
-                value={formData.openingHours}
-                onChange={handleInputChange}
-                placeholder="09:00 - 18:00"
-              />
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="장소명"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth required>
+                    <InputLabel>카테고리</InputLabel>
+                    <Select value={formData.categoryId} onChange={handleSelectChange} label="카테고리">
+                      {categories.map((category) => (
+                        <MenuItem key={category.id} value={category.id}>
+                          {category.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="전화번호"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="02-1234-5678"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Divider />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="주소"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    required
+                    helperText="지도 클릭 시 자동 입력됩니다"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="위도"
+                    name="latitude"
+                    type="number"
+                    value={formData.latitude}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="37.5665"
+                    inputProps={{ step: 'any' }}
+                    helperText="지도 클릭 시 자동 입력"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="경도"
+                    name="longitude"
+                    type="number"
+                    value={formData.longitude}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="126.978"
+                    inputProps={{ step: 'any' }}
+                    helperText="지도 클릭 시 자동 입력"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Divider />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="설명"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    multiline
+                    rows={3}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="웹사이트"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="영업시간"
+                    name="openingHours"
+                    value={formData.openingHours}
+                    onChange={handleInputChange}
+                    placeholder="09:00 - 18:00"
+                  />
+                </Grid>
+              </Grid>
             </Grid>
           </Grid>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography variant="caption">
-              위도/경도는 <a href="https://www.google.com/maps" target="_blank" rel="noopener">구글 지도</a>에서 
-              장소를 우클릭하여 확인할 수 있습니다.
-            </Typography>
-          </Alert>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>취소</Button>

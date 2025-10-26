@@ -19,7 +19,8 @@ import {
   Memory,
   Storage,
 } from '@mui/icons-material';
-import { getDashboardStats, DashboardStats, getSystemMetrics, SystemMetrics } from '../../services/adminService';
+import { getDashboardStats, DashboardStats } from '../../services/adminService';
+import { getSystemMetrics, SystemMetrics } from '../../services/monitoringService';
 import { formatTime } from '../../utils/dateUtils';
 
 interface StatCardProps {

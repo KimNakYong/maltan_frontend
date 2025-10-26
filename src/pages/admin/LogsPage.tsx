@@ -24,7 +24,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { Search, Refresh } from '@mui/icons-material';
-import { getSystemLogs, SystemLog } from '../../services/adminService';
+import { getSystemLogs, SystemLog } from '../../services/monitoringService';
 import { formatDateTime } from '../../utils/dateUtils';
 
 const LogsPage: React.FC = () => {

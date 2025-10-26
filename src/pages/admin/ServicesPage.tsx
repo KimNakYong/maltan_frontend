@@ -11,7 +11,7 @@ import {
   Button,
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
-import { getServicesMetrics, ServiceMetrics } from '../../services/adminService';
+import { getServicesMetrics, ServiceMetrics } from '../../services/monitoringService';
 import { formatTime } from '../../utils/dateUtils';
 
 const ServicesPage: React.FC = () => {

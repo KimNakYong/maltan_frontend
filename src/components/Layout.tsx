@@ -61,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               홈
             </Button>
             <Button color="inherit" onClick={() => navigate('/map-test')}>
-              지도 테스트
+              주변 장소 찾기
             </Button>
             <Button color="inherit" onClick={() => navigate('/community')}>
               커뮤니티

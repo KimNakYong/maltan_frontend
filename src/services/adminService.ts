@@ -141,32 +141,6 @@ export interface DashboardStats {
   inactiveUsers: number;
 }
 
-// 시스템 메트릭
-export interface SystemMetrics {
-  cpuUsage: number;
-  memoryUsage: number;
-  diskUsage: number;
-  totalMemory: number;
-  usedMemory: number;
-  freeMemory: number;
-  totalDisk: number;
-  usedDisk: number;
-  freeDisk: number;
-  availableProcessors: number;
-  systemLoadAverage: number;
-}
-
-// 서비스별 메트릭
-export interface ServiceMetrics {
-  serviceName: string;
-  status: string;
-  cpuUsage: number;
-  memoryUsage: number;
-  memoryLimit: number;
-  memoryUsed: number;
-  uptime: string;
-}
-
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const userStatsResponse = await api.get('/api/user/admin/stats');
@@ -193,96 +167,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       adminUsers: 0,
       inactiveUsers: 0,
     };
-  }
-};
-
-// 시스템 메트릭 조회
-export const getSystemMetrics = async (): Promise<SystemMetrics> => {
-  try {
-    const response = await api.get('/api/user/admin/system/metrics');
-    return response.data.data || response.data;
-  } catch (error) {
-    console.error('시스템 메트릭 조회 실패:', error);
-    // 에러 시 기본값 반환
-    return {
-      cpuUsage: 0,
-      memoryUsage: 0,
-      diskUsage: 0,
-      totalMemory: 0,
-      usedMemory: 0,
-      freeMemory: 0,
-      totalDisk: 0,
-      usedDisk: 0,
-      freeDisk: 0,
-      availableProcessors: 0,
-      systemLoadAverage: 0,
-    };
-  }
-};
-
-// 서비스별 메트릭 조회
-export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
-  try {
-    const response = await api.get('/api/user/admin/services/metrics');
-    return response.data.data || response.data || [];
-  } catch (error) {
-    console.error('서비스 메트릭 조회 실패:', error);
-    // 에러 시 빈 배열 반환
-    return [];
-  }
-};
-
-// 시스템 로그
-export interface SystemLog {
-  id: string;
-  timestamp: string;
-  level: string;
-  service: string;
-  message: string;
-  userId: string | null;
-}
-
-// 시스템 로그 조회
-export const getSystemLogs = async (
-  limit: number = 100,
-  service?: string,
-  level?: string
-): Promise<SystemLog[]> => {
-  try {
-    const params: any = { limit };
-    if (service && service !== 'all') params.service = service;
-    if (level && level !== 'all') params.level = level;
-    
-    const response = await api.get('/api/user/admin/logs', { params });
-    return response.data.data || response.data || [];
-  } catch (error) {
-    console.error('시스템 로그 조회 실패:', error);
-    return [];
-  }
-};
-
-// 데이터베이스 메트릭
-export interface DatabaseMetrics {
-  databaseName: string;
-  type: string; // mysql, postgresql, redis
-  status: string;
-  connections: number;
-  maxConnections: number;
-  connectionUsage: number;
-  databaseSize: number;
-  tableCount: number;
-  version: string;
-  uptime: string;
-}
-
-// 데이터베이스 메트릭 조회
-export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
-  try {
-    const response = await api.get('/api/user/admin/databases/metrics');
-    return response.data.data || response.data || [];
-  } catch (error) {
-    console.error('데이터베이스 메트릭 조회 실패:', error);
-    return [];
   }
 };
 

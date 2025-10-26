@@ -11,7 +11,7 @@ import {
   Button,
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
-import { getDatabaseMetrics, DatabaseMetrics } from '../../services/adminService';
+import { getDatabaseMetrics, DatabaseMetrics } from '../../services/monitoringService';
 import { formatTime } from '../../utils/dateUtils';
 
 const DatabasesPage: React.FC = () => {

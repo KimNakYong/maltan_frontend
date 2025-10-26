@@ -14,6 +14,7 @@ const MapTestPage: React.FC = () => {
     position: { lat: number; lng: number };
     title: string;
   }>>([]);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   const { location, loading: locationLoading, getCurrentLocation } = useCurrentLocation();
   
@@ -22,7 +23,6 @@ const MapTestPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [radius, setRadius] = useState(5.0);
 
   // 내 위치로 이동
   const handleMyLocation = () => {
@@ -31,40 +31,12 @@ const MapTestPage: React.FC = () => {
 
   // 위치 업데이트
   useEffect(() => {
-    if (location) {
+    if (location && map) {
       setCenter(location);
-      setMarkers([{
-        id: 'my-location',
-        position: location,
-        title: '내 위치',
-      }]);
-      // 내 위치 기준으로 주변 장소 자동 검색
-      handleNearbySearch(location.lat, location.lng);
+      map.panTo(location);
     }
-  }, [location]);
+  }, [location, map]);
 
-  // 장소 검색 결과를 마커로 표시
-  useEffect(() => {
-    if (places.length > 0) {
-      const newMarkers = places.map((place) => ({
-        id: place.id.toString(),
-        position: {
-          lat: place.latitude,
-          lng: place.longitude,
-        },
-        title: place.name,
-      }));
-      setMarkers(newMarkers);
-      
-      // 첫 번째 결과 위치로 이동
-      if (places[0]) {
-        setCenter({
-          lat: places[0].latitude,
-          lng: places[0].longitude,
-        });
-      }
-    }
-  }, [places]);
 
   // 텍스트 검색
   const handleSearch = async () => {
@@ -74,7 +46,30 @@ const MapTestPage: React.FC = () => {
     setError(null);
     try {
       const response = await searchPlaces(searchQuery, undefined, 0, 50);
-      setPlaces(response.content);
+      const searchResults = response.content;
+      
+      if (searchResults.length > 0 && map) {
+        // 검색 결과의 범위를 계산하여 지도에 표시
+        const bounds = new window.google.maps.LatLngBounds();
+        searchResults.forEach((place) => {
+          bounds.extend(new window.google.maps.LatLng(place.latitude, place.longitude));
+        });
+        map.fitBounds(bounds);
+        
+        // 마커 생성
+        const newMarkers = searchResults.map((place) => ({
+          id: place.id.toString(),
+          position: {
+            lat: place.latitude,
+            lng: place.longitude,
+          },
+          title: place.name,
+        }));
+        setMarkers(newMarkers);
+      }
+      
+      setPlaces(searchResults);
+      setSelectedCategory(null); // 검색 시 카테고리 필터 해제
     } catch (err: any) {
       console.error('장소 검색 실패:', err);
       setError('장소 검색에 실패했습니다.');
@@ -83,35 +78,70 @@ const MapTestPage: React.FC = () => {
     }
   };
 
-  // 주변 장소 검색
-  const handleNearbySearch = async (lat?: number, lng?: number, categoryCode?: string) => {
-    const searchLat = lat || center.lat;
-    const searchLng = lng || center.lng;
-    
+  // 지도 범위 기반 장소 로드
+  const loadPlacesInBounds = async (bounds: google.maps.LatLngBounds, categoryCode?: string) => {
     setLoading(true);
     setError(null);
     try {
+      // 지도 중심점과 반경 계산
+      const center = bounds.getCenter();
+      const ne = bounds.getNorthEast();
+      
+      // 대각선 거리를 반경으로 사용 (km 단위) - 여유있게 1.5배 확장
+      const radius = (window.google.maps.geometry.spherical.computeDistanceBetween(
+        new window.google.maps.LatLng(center.lat(), center.lng()),
+        new window.google.maps.LatLng(ne.lat(), ne.lng())
+      ) / 1000) * 1.5;
+      
       // categoryCode를 categoryId로 변환
       const categoryId = categoryCode 
         ? PLACE_CATEGORIES.find(c => c.code === categoryCode)?.id 
         : undefined;
       
-      console.log('주변 검색:', { 
-        lat: searchLat, 
-        lng: searchLng, 
-        radius, 
+      console.log('지도 범위 기반 검색:', { 
+        center: { lat: center.lat(), lng: center.lng() },
+        radius,
         categoryCode, 
         categoryId 
       });
       
       // categoryId를 백엔드로 전달
-      const nearbyPlaces = await getNearbyPlaces(searchLat, searchLng, radius, categoryId);
+      const nearbyPlaces = await getNearbyPlaces(center.lat(), center.lng(), radius, categoryId);
       
-      setPlaces(nearbyPlaces);
+      // 배열인지 확인
+      if (!Array.isArray(nearbyPlaces)) {
+        console.error('API 응답이 배열이 아닙니다:', nearbyPlaces);
+        setPlaces([]);
+        setMarkers([]);
+        return;
+      }
+      
+      // 현재 지도 범위 내에 있는 장소만 필터링
+      const placesInView = nearbyPlaces.filter((place) => {
+        const placeLatLng = new window.google.maps.LatLng(place.latitude, place.longitude);
+        return bounds.contains(placeLatLng);
+      });
+      
+      console.log(`전체 장소: ${nearbyPlaces.length}, 화면 내 장소: ${placesInView.length}`);
+      
+      setPlaces(placesInView);
       setSelectedCategory(categoryCode || null);
+      
+      // 화면 내 장소에 대해서만 마커 생성
+      const newMarkers = placesInView.map((place) => ({
+        id: place.id.toString(),
+        position: {
+          lat: place.latitude,
+          lng: place.longitude,
+        },
+        title: place.name,
+      }));
+      setMarkers(newMarkers);
     } catch (err: any) {
-      console.error('주변 장소 검색 실패:', err);
+      console.error('주변 장소 로드 실패:', err);
       setError('주변 장소 검색에 실패했습니다.');
+      setPlaces([]);
+      setMarkers([]);
     } finally {
       setLoading(false);
     }
@@ -164,31 +194,6 @@ const MapTestPage: React.FC = () => {
               </Button>
             </Box>
 
-            <Box sx={{ mb: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                검색 반경:
-              </Typography>
-              <TextField
-                type="number"
-                size="small"
-                value={radius}
-                onChange={(e) => setRadius(parseFloat(e.target.value))}
-                inputProps={{ min: 0.5, max: 50, step: 0.5 }}
-                sx={{ width: '100px' }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                km
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => handleNearbySearch()}
-                disabled={loading}
-              >
-                주변 검색
-              </Button>
-            </Box>
-
             {loading && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                 <CircularProgress size={24} />
@@ -199,10 +204,20 @@ const MapTestPage: React.FC = () => {
               center={center}
               zoom={14}
               markers={markers}
-              onMapClick={(lat, lng) => {
-                console.log('클릭한 위치:', lat, lng);
-                setCenter({ lat, lng });
-                handleNearbySearch(lat, lng);
+              onMapLoad={(mapInstance: google.maps.Map) => {
+                setMap(mapInstance);
+                // 지도 로드 시 초기 장소 로드
+                const bounds = mapInstance.getBounds();
+                if (bounds) {
+                  loadPlacesInBounds(bounds, selectedCategory || undefined);
+                }
+              }}
+              onBoundsChanged={(mapInstance: google.maps.Map) => {
+                // 지도 이동/확대/축소 시 장소 로드
+                const bounds = mapInstance.getBounds();
+                if (bounds) {
+                  loadPlacesInBounds(bounds, selectedCategory || undefined);
+                }
               }}
               style={{ width: '100%', height: '600px' }}
             />
@@ -221,7 +236,14 @@ const MapTestPage: React.FC = () => {
                   key={category.code}
                   icon={category.icon}
                   label={category.name}
-                  onClick={() => handleNearbySearch(undefined, undefined, category.code)}
+                  onClick={() => {
+                    if (map) {
+                      const bounds = map.getBounds();
+                      if (bounds) {
+                        loadPlacesInBounds(bounds, category.code);
+                      }
+                    }
+                  }}
                   color={selectedCategory === category.code ? 'primary' : 'default'}
                   variant={selectedCategory === category.code ? 'filled' : 'outlined'}
                 />
@@ -229,7 +251,14 @@ const MapTestPage: React.FC = () => {
               {selectedCategory && (
                 <Chip
                   label="전체"
-                  onClick={() => handleNearbySearch()}
+                  onClick={() => {
+                    if (map) {
+                      const bounds = map.getBounds();
+                      if (bounds) {
+                        loadPlacesInBounds(bounds);
+                      }
+                    }
+                  }}
                   color="secondary"
                   variant="outlined"
                 />
@@ -313,18 +342,18 @@ const MapTestPage: React.FC = () => {
         </Paper>
       )}
 
-      {/* 통계 및 디버그 정보 */}
+      {/* 통계 정보 */}
       <Paper sx={{ p: 2, mt: 2 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={4}>
             <Typography variant="body2" color="text.secondary">
-              총 검색 결과
+              화면 내 장소
             </Typography>
             <Typography variant="h5" fontWeight="bold">
               {places.length}개
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={4}>
             <Typography variant="body2" color="text.secondary">
               지도 중심
             </Typography>
@@ -332,20 +361,12 @@ const MapTestPage: React.FC = () => {
               {center.lat.toFixed(4)}, {center.lng.toFixed(4)}
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <Typography variant="body2" color="text.secondary">
-              검색 반경
-            </Typography>
-            <Typography variant="body2">
-              {radius} km
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={3}>
+          <Grid item xs={12} sm={4}>
             <Typography variant="body2" color="text.secondary">
               검색 상태
             </Typography>
             <Typography variant="body2" color={places.length > 0 ? 'success.main' : 'warning.main'}>
-              {loading ? '검색 중...' : places.length > 0 ? '검색 완료' : '데이터 없음'}
+              {loading ? '검색 중...' : places.length > 0 ? '검색 완료' : '장소 없음'}
             </Typography>
           </Grid>
         </Grid>
@@ -353,12 +374,12 @@ const MapTestPage: React.FC = () => {
         {places.length === 0 && !loading && (
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2" fontWeight="bold" gutterBottom>
-              검색 범위 내에 등록된 장소가 없습니다
+              현재 지도 범위에 등록된 장소가 없습니다
             </Typography>
             <Typography variant="caption">
-              • 검색 위치: {center.lat.toFixed(6)}, {center.lng.toFixed(6)}<br />
-              • 검색 반경: {radius}km<br />
-              • 다른 위치를 클릭하거나 검색 반경을 늘려보세요
+              • 지도를 이동하거나 축소하여 더 넓은 범위를 확인해보세요<br />
+              • 카테고리 필터를 해제해보세요<br />
+              • 텍스트 검색을 이용해보세요
             </Typography>
           </Alert>
         )}
