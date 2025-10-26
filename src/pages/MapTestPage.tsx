@@ -125,7 +125,7 @@ const MapTestPage: React.FC = () => {
       console.log(`전체 장소: ${nearbyPlaces.length}, 화면 내 장소: ${placesInView.length}`);
       
       setPlaces(placesInView);
-      setSelectedCategory(categoryCode || null);
+      // 카테고리 상태는 사용자가 명시적으로 선택할 때만 변경 (여기서 변경하지 않음)
       
       // 화면 내 장소에 대해서만 마커 생성
       const newMarkers = placesInView.map((place) => ({
@@ -237,6 +237,8 @@ const MapTestPage: React.FC = () => {
                   icon={category.icon}
                   label={category.name}
                   onClick={() => {
+                    // 카테고리 상태를 먼저 설정
+                    setSelectedCategory(category.code);
                     if (map) {
                       const bounds = map.getBounds();
                       if (bounds) {
@@ -252,6 +254,8 @@ const MapTestPage: React.FC = () => {
                 <Chip
                   label="전체"
                   onClick={() => {
+                    // 카테고리 선택 해제
+                    setSelectedCategory(null);
                     if (map) {
                       const bounds = map.getBounds();
                       if (bounds) {
