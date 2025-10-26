@@ -169,6 +169,17 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
         const uptimeHours = Math.floor(uptimeSeconds / 3600);
         const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
 
+        // CPU Usage
+        const cpuData = await queryPrometheus(`process_cpu_usage{job="${service}"}`);
+        const cpuUsage = extractValue(cpuData, 0) * 100;
+
+        // Memory Usage
+        const memoryUsedData = await queryPrometheus(`jvm_memory_used_bytes{job="${service}",area="heap"}`);
+        const memoryMaxData = await queryPrometheus(`jvm_memory_max_bytes{job="${service}",area="heap"}`);
+        const memoryUsed = extractValue(memoryUsedData, 0);
+        const memoryLimit = extractValue(memoryMaxData, 0);
+        const memoryUsage = memoryLimit > 0 ? (memoryUsed / memoryLimit) * 100 : 0;
+
         return {
           serviceName: service,
           status: isUp ? 'UP' : 'DOWN',
@@ -176,6 +187,10 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
           requestRate: extractValue(requestRateData, 0),
           errorRate: extractValue(errorRateData, 0),
           responseTime: extractValue(responseTimeData, 0),
+          cpuUsage: cpuUsage,
+          memoryUsage: memoryUsage,
+          memoryUsed: memoryUsed / (1024 * 1024), // MB로 변환
+          memoryLimit: memoryLimit / (1024 * 1024), // MB로 변환
         };
       } catch (error) {
         return {
@@ -185,6 +200,10 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
           requestRate: 0,
           errorRate: 0,
           responseTime: 0,
+          cpuUsage: 0,
+          memoryUsage: 0,
+          memoryUsed: 0,
+          memoryLimit: 0,
         };
       }
     });
@@ -209,18 +228,36 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
         type: 'mysql',
         status: 'UP',
         connections: 0,
+        maxConnections: 151, // MySQL 기본값
+        connectionUsage: 0,
+        databaseSize: 0,
+        tableCount: 0,
+        version: '8.0',
+        uptime: 0,
       },
       {
         databaseName: 'PostgreSQL (Community/Recommendation)',
         type: 'postgresql',
         status: 'UP',
         connections: 0,
+        maxConnections: 100, // PostgreSQL 기본값
+        connectionUsage: 0,
+        databaseSize: 0,
+        tableCount: 0,
+        version: '15.0',
+        uptime: 0,
       },
       {
         databaseName: 'Redis',
         type: 'redis',
         status: 'UP',
         connections: 0,
+        maxConnections: 10000, // Redis 기본값
+        connectionUsage: 0,
+        databaseSize: 0,
+        tableCount: 0,
+        version: '7.0',
+        uptime: 0,
       },
     ];
     
