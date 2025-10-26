@@ -68,6 +68,9 @@ const RatingDialog: React.FC<RatingDialogProps> = ({
       if (isEditMode && existingReview) {
         // 리뷰 수정
         await updateReview(existingReview.id, {
+          placeId,
+          userId,
+          userName,
           rating,
           content: content.trim() || undefined,
         });
