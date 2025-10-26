@@ -91,17 +91,23 @@ const MapTestPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const nearbyPlaces = await getNearbyPlaces(searchLat, searchLng, radius);
+      // categoryCode를 categoryId로 변환
+      const categoryId = categoryCode 
+        ? PLACE_CATEGORIES.find(c => c.code === categoryCode)?.id 
+        : undefined;
       
-      // 카테고리 필터링 (프론트엔드에서)
-      let filteredPlaces = nearbyPlaces;
-      if (categoryCode) {
-        // TODO: 백엔드에서 카테고리 ID 매핑 필요
-        // 현재는 모든 장소 표시
-        filteredPlaces = nearbyPlaces;
-      }
+      console.log('주변 검색:', { 
+        lat: searchLat, 
+        lng: searchLng, 
+        radius, 
+        categoryCode, 
+        categoryId 
+      });
       
-      setPlaces(filteredPlaces);
+      // categoryId를 백엔드로 전달
+      const nearbyPlaces = await getNearbyPlaces(searchLat, searchLng, radius, categoryId);
+      
+      setPlaces(nearbyPlaces);
       setSelectedCategory(categoryCode || null);
     } catch (err: any) {
       console.error('주변 장소 검색 실패:', err);
@@ -114,10 +120,10 @@ const MapTestPage: React.FC = () => {
   return (
     <Box>
       <Typography variant="h4" gutterBottom fontWeight="bold">
-        장소 서비스 지도 테스트
+        주변 장소 찾기
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Place Service와 연동된 실제 장소 데이터를 지도에서 확인하세요
+        지도에서 주변의 맛집, 관광지, 문화시설을 검색하고 탐색하세요
       </Typography>
 
       {error && (
@@ -336,10 +342,10 @@ const MapTestPage: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={3}>
             <Typography variant="body2" color="text.secondary">
-              API 상태
+              검색 상태
             </Typography>
             <Typography variant="body2" color={places.length > 0 ? 'success.main' : 'warning.main'}>
-              {loading ? '검색 중...' : places.length > 0 ? '정상 연결' : 'DB 데이터 없음'}
+              {loading ? '검색 중...' : places.length > 0 ? '검색 완료' : '데이터 없음'}
             </Typography>
           </Grid>
         </Grid>
@@ -347,13 +353,12 @@ const MapTestPage: React.FC = () => {
         {places.length === 0 && !loading && (
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2" fontWeight="bold" gutterBottom>
-              Place Service DB에 데이터가 없거나 검색 범위 내에 장소가 없습니다
+              검색 범위 내에 등록된 장소가 없습니다
             </Typography>
             <Typography variant="caption">
-              • API 엔드포인트: <code>/api/places/nearby</code><br />
               • 검색 위치: {center.lat.toFixed(6)}, {center.lng.toFixed(6)}<br />
               • 검색 반경: {radius}km<br />
-              • 해결 방법: Place Service DB에 샘플 데이터를 추가하거나 다른 위치를 검색해보세요
+              • 다른 위치를 클릭하거나 검색 반경을 늘려보세요
             </Typography>
           </Alert>
         )}
