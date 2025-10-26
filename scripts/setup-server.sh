@@ -55,6 +55,16 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
     
+    # Prometheus 프록시 (모니터링)
+    location /api/prometheus/ {
+        proxy_pass http://localhost:9090/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
     # 정적 파일 캐싱
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;
