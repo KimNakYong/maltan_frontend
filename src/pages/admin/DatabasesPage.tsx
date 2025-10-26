@@ -71,10 +71,10 @@ const DatabasesPage: React.FC = () => {
   useEffect(() => {
     loadMetrics();
     
-    // 10초마다 자동 새로고침
-    const interval = setInterval(() => {
-      loadMetrics();
-    }, 10000);
+        // 30초마다 자동 새로고침 (Ngrok rate limit 대응)
+        const interval = setInterval(() => {
+          loadMetrics();
+        }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -115,9 +115,9 @@ const DatabasesPage: React.FC = () => {
           />
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            마지막 업데이트: {formatTime(refreshTime)} (10초마다 자동 갱신)
-          </Typography>
+            <Typography variant="body2" color="text.secondary">
+              마지막 업데이트: {formatTime(refreshTime)} (30초마다 자동 갱신)
+            </Typography>
           <Button
             variant="outlined"
             startIcon={<Refresh />}

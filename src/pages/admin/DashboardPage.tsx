@@ -178,10 +178,10 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     loadStats();
     
-    // 10초마다 자동 새로고침
+    // 30초마다 자동 새로고침 (Ngrok rate limit 대응)
     const interval = setInterval(() => {
       loadStats();
-    }, 10000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);

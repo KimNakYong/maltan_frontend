@@ -54,7 +54,7 @@ server {
     
     # Loki 프록시 (로그 수집) - /api/ 보다 먼저 정의해야 함
     location /api/loki/ {
-        proxy_pass http://localhost:3100/;
+        proxy_pass http://localhost:3100/loki/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
