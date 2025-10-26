@@ -43,7 +43,6 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
   
   // 평점 관련 state
   const [userReview, setUserReview] = useState<Review | null>(null);
-  const [hasReviewed, setHasReviewed] = useState(false);
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [checkingReview, setCheckingReview] = useState(false);
 
@@ -54,7 +53,6 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
     } else {
       setPosts([]);
       setUserReview(null);
-      setHasReviewed(false);
       setError(null);
     }
   }, [place, open, user]);
@@ -79,26 +77,17 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
   const checkUserReview = async () => {
     if (!place || !user?.id) {
       setUserReview(null);
-      setHasReviewed(false);
       return;
     }
 
     setCheckingReview(true);
     try {
       const userId = parseInt(user.id);
-      const reviewed = await hasUserReviewedPlace(place.id, userId);
-      setHasReviewed(reviewed);
-
-      if (reviewed) {
-        const review = await getUserReviewForPlace(place.id, userId);
-        setUserReview(review);
-      } else {
-        setUserReview(null);
-      }
+      const review = await getUserReviewForPlace(place.id, userId);
+      setUserReview(review);
     } catch (err: any) {
       console.error('사용자 리뷰 확인 실패:', err);
       setUserReview(null);
-      setHasReviewed(false);
     } finally {
       setCheckingReview(false);
     }
