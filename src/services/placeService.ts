@@ -2,6 +2,22 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+// 사진 인터페이스
+export interface PlacePhoto {
+  id: number;
+  originalName?: string;
+  storedName?: string;
+  filePath: string;
+  fileUrl?: string;
+  fileSize?: number;
+  contentType?: string;
+  isMain?: boolean;
+  sortOrder?: number;
+  uploadedBy?: number;
+  placeId?: number;
+  createdAt?: string;
+}
+
 // 장소 인터페이스
 export interface Place {
   id: number;
@@ -20,6 +36,7 @@ export interface Place {
   viewCount?: number;
   isActive: boolean;
   createdBy?: number;
+  photos?: PlacePhoto[]; // 장소 이미지
   createdAt: string;
   updatedAt: string;
 }

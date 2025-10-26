@@ -15,8 +15,10 @@ import {
   ListItem,
   ListItemText,
   Alert,
+  ImageList,
+  ImageListItem,
 } from '@mui/material';
-import { Place as PlaceIcon, LocationOn, Category, Article } from '@mui/icons-material';
+import { Place as PlaceIcon, LocationOn, Category, Article, Image } from '@mui/icons-material';
 import { Place } from '../services/placeService';
 import { getPostsByPlaceId, Post } from '../services/communityService';
 import { useNavigate } from 'react-router-dom';
@@ -78,6 +80,30 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
       </DialogTitle>
 
       <DialogContent dividers>
+        {/* 장소 이미지 */}
+        {place.photos && place.photos.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <Image color="primary" />
+              <Typography variant="h6" fontWeight="bold">
+                장소 사진
+              </Typography>
+            </Box>
+            <ImageList cols={3} rowHeight={164} gap={8}>
+              {place.photos.map((photo) => (
+                <ImageListItem key={photo.id}>
+                  <img
+                    src={photo.fileUrl || `/uploads/${photo.filePath}`}
+                    alt={photo.originalName || '장소 이미지'}
+                    loading="lazy"
+                    style={{ objectFit: 'cover', height: '164px', borderRadius: '4px' }}
+                  />
+                </ImageListItem>
+              ))}
+            </ImageList>
+          </Box>
+        )}
+
         {/* 장소 기본 정보 */}
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -31,9 +31,13 @@ import { Place, searchPlaces } from '../services/placeService';
 
 const CommunityWritePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { user } = useAppSelector((state) => state.auth);
   const isEditMode = !!id;
+  
+  // PlaceDetailDialog에서 전달된 장소 정보
+  const preselectedPlace = location.state?.selectedPlace as Place | undefined;
   
   const [formData, setFormData] = useState({
     title: '',
@@ -63,6 +67,21 @@ const CommunityWritePage: React.FC = () => {
   const [placeLoading, setPlaceLoading] = useState(false);
 
   const categories = ['자유', '질문', '정보', '모임', '봉사', '운동', '취미'];
+
+  // PlaceDetailDialog에서 전달된 장소 자동 선택
+  useEffect(() => {
+    if (preselectedPlace && !isEditMode) {
+      setSelectedPlace(preselectedPlace);
+      setPlaceSearchInput(preselectedPlace.name);
+      setFormData(prev => ({
+        ...prev,
+        eventLocation: preselectedPlace.name,
+        latitude: preselectedPlace.latitude,
+        longitude: preselectedPlace.longitude,
+        address: preselectedPlace.address,
+      }));
+    }
+  }, [preselectedPlace, isEditMode]);
 
   // 수정 모드일 때 기존 게시글 불러오기
   useEffect(() => {
@@ -217,6 +236,11 @@ const CommunityWritePage: React.FC = () => {
         request.recruitmentDeadline = formData.recruitmentDeadline?.toISOString();
         request.eventDate = formData.eventDate?.toISOString();
         request.eventLocation = formData.eventLocation;
+      }
+
+      // 장소 ID 추가 (Place DB와 연동)
+      if (selectedPlace && selectedPlace.id > 0) {
+        request.placeId = selectedPlace.id;
       }
 
       // 위치 정보 추가
