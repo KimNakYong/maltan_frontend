@@ -17,10 +17,14 @@ import {
   Alert,
   ImageList,
   ImageListItem,
+  LinearProgress,
 } from '@mui/material';
-import { Place as PlaceIcon, LocationOn, Category, Article, Image } from '@mui/icons-material';
+import { Place as PlaceIcon, LocationOn, Category, Article, Image, Star, Edit } from '@mui/icons-material';
 import { Place } from '../services/placeService';
 import { getPostsByPlaceId, Post } from '../services/communityService';
+import { hasUserReviewedPlace, getUserReviewForPlace, Review } from '../services/reviewService';
+import RatingDialog from './RatingDialog';
+import { useAppSelector } from '../store/hooks';
 import { useNavigate } from 'react-router-dom';
 
 interface PlaceDetailDialogProps {
@@ -30,19 +34,30 @@ interface PlaceDetailDialogProps {
 }
 
 const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onClose }) => {
+  const { user } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
+  
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  
+  // 평점 관련 state
+  const [userReview, setUserReview] = useState<Review | null>(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [checkingReview, setCheckingReview] = useState(false);
 
   useEffect(() => {
     if (place && open) {
       loadPosts();
+      checkUserReview();
     } else {
       setPosts([]);
+      setUserReview(null);
+      setHasReviewed(false);
       setError(null);
     }
-  }, [place, open]);
+  }, [place, open, user]);
 
   const loadPosts = async () => {
     if (!place) return;
@@ -59,6 +74,39 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkUserReview = async () => {
+    if (!place || !user?.id) {
+      setUserReview(null);
+      setHasReviewed(false);
+      return;
+    }
+
+    setCheckingReview(true);
+    try {
+      const userId = parseInt(user.id);
+      const reviewed = await hasUserReviewedPlace(place.id, userId);
+      setHasReviewed(reviewed);
+
+      if (reviewed) {
+        const review = await getUserReviewForPlace(place.id, userId);
+        setUserReview(review);
+      } else {
+        setUserReview(null);
+      }
+    } catch (err: any) {
+      console.error('사용자 리뷰 확인 실패:', err);
+      setUserReview(null);
+      setHasReviewed(false);
+    } finally {
+      setCheckingReview(false);
+    }
+  };
+
+  const handleReviewSuccess = () => {
+    checkUserReview();
+    // 장소 정보를 새로고침하여 평균 평점 업데이트 (선택사항)
   };
 
   const handlePostClick = (postId: number) => {
@@ -126,14 +174,59 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
             </Typography>
           )}
 
-          {place.averageRating && place.averageRating > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
-              <Rating value={place.averageRating} precision={0.1} readOnly size="small" />
-              <Typography variant="body2">
-                {place.averageRating.toFixed(1)} ({place.reviewCount || 0}개 리뷰)
+          {/* 평점 정보 */}
+          <Box sx={{ mt: 2 }}>
+            {place.averageRating && place.averageRating > 0 ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Rating value={place.averageRating} precision={0.1} readOnly size="small" />
+                <Typography variant="body2">
+                  {place.averageRating.toFixed(1)} ({place.reviewCount || 0}개 평점)
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                아직 평점이 없습니다
               </Typography>
-            </Box>
-          )}
+            )}
+
+            {/* 내 평점 표시 */}
+            {checkingReview ? (
+              <LinearProgress sx={{ mt: 1, height: 2 }} />
+            ) : user && userReview ? (
+              <Box sx={{ mt: 1, p: 1.5, bgcolor: 'primary.light', borderRadius: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Star color="warning" fontSize="small" />
+                  <Typography variant="body2" fontWeight="bold">
+                    내 평점: {userReview.rating}점
+                  </Typography>
+                  {userReview.content && (
+                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                      "{userReview.content.substring(0, 30)}{userReview.content.length > 30 ? '...' : ''}"
+                    </Typography>
+                  )}
+                </Box>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Edit />}
+                  onClick={() => setRatingDialogOpen(true)}
+                >
+                  수정
+                </Button>
+              </Box>
+            ) : user ? (
+              <Button
+                size="small"
+                variant="contained"
+                color="warning"
+                startIcon={<Star />}
+                onClick={() => setRatingDialogOpen(true)}
+                sx={{ mt: 1 }}
+              >
+                평점 남기기
+              </Button>
+            ) : null}
+          </Box>
         </Box>
 
         <Divider sx={{ my: 2 }} />
@@ -222,6 +315,20 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
           이 장소에 게시글 작성
         </Button>
       </DialogActions>
+
+      {/* 평점 작성/수정 Dialog */}
+      {user && place && (
+        <RatingDialog
+          open={ratingDialogOpen}
+          onClose={() => setRatingDialogOpen(false)}
+          placeId={place.id}
+          placeName={place.name}
+          userId={parseInt(user.id)}
+          userName={user.name || user.email}
+          existingReview={userReview}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
     </Dialog>
   );
 };
