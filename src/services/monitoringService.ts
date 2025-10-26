@@ -23,13 +23,28 @@ const queryPrometheus = async (query: string): Promise<any> => {
 // Prometheus 값 추출 (첫 번째 결과의 값)
 const extractValue = (data: any, defaultValue: number = 0): number => {
   try {
-    if (data.result && data.result.length > 0) {
+    if (data?.result && data.result.length > 0) {
       const value = parseFloat(data.result[0].value[1]);
       return isNaN(value) ? defaultValue : value;
     }
     return defaultValue;
   } catch (error) {
     return defaultValue;
+  }
+};
+
+// Prometheus 여러 결과 합산 (메모리 영역별 합산용)
+const sumValues = (data: any): number => {
+  try {
+    if (data?.result && data.result.length > 0) {
+      return data.result.reduce((sum: number, item: any) => {
+        const value = parseFloat(item.value[1]);
+        return sum + (isNaN(value) ? 0 : value);
+      }, 0);
+    }
+    return 0;
+  } catch (error) {
+    return 0;
   }
 };
 
@@ -174,10 +189,12 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
         const cpuUsage = extractValue(cpuData, 0) * 100;
 
         // Memory Usage (모든 heap 영역 합산)
-        const memoryUsedData = await queryPrometheus(`sum(jvm_memory_used_bytes{job="${service}",area="heap"})`);
-        const memoryMaxData = await queryPrometheus(`sum(jvm_memory_max_bytes{job="${service}",area="heap"})`);
-        const memoryUsed = extractValue(memoryUsedData, 0);
-        const memoryLimit = extractValue(memoryMaxData, 0);
+        // sum() 대신 개별 메트릭을 가져와서 프론트엔드에서 합산
+        const memoryUsedData = await queryPrometheus(`jvm_memory_used_bytes{job="${service}",area="heap"}`);
+        const memoryMaxData = await queryPrometheus(`jvm_memory_max_bytes{job="${service}",area="heap"}`);
+        
+        const memoryUsed = sumValues(memoryUsedData);
+        const memoryLimit = sumValues(memoryMaxData);
         const memoryUsage = memoryLimit > 0 ? (memoryUsed / memoryLimit) * 100 : 0;
 
         return {
@@ -216,50 +233,128 @@ export const getServicesMetrics = async (): Promise<ServiceMetrics[]> => {
 };
 
 /**
- * 데이터베이스 메트릭 조회 (간단한 버전)
+ * 데이터베이스 메트릭 조회 (HikariCP 메트릭 활용)
  */
 export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
   try {
-    // 실제 DB 메트릭을 수집하려면 각 DB에 exporter를 설치해야 함
-    // 여기서는 서비스들이 DB에 접속 가능한지 여부만 표시
-    const databases: DatabaseMetrics[] = [
-      {
-        databaseName: 'MySQL (User/Place)',
-        type: 'mysql',
-        status: 'UP',
-        connections: 0,
-        maxConnections: 151, // MySQL 기본값
-        connectionUsage: 0,
-        databaseSize: 0,
-        tableCount: 0,
-        version: '8.0',
-        uptime: 0,
-      },
-      {
-        databaseName: 'PostgreSQL (Community/Recommendation)',
-        type: 'postgresql',
-        status: 'UP',
-        connections: 0,
-        maxConnections: 100, // PostgreSQL 기본값
-        connectionUsage: 0,
-        databaseSize: 0,
-        tableCount: 0,
-        version: '15.0',
-        uptime: 0,
-      },
-      {
+    const databases: DatabaseMetrics[] = [];
+    
+    // MySQL - User Service와 Place Service의 HikariCP 메트릭 조회
+    const mysqlServices = ['user-service', 'place-service'];
+    let mysqlTotalActive = 0;
+    let mysqlTotalMax = 0;
+    let mysqlUptime = 0;
+    let mysqlStatus = 'DOWN';
+    
+    for (const service of mysqlServices) {
+      try {
+        const activeData = await queryPrometheus(`hikaricp_connections_active{job="${service}"}`);
+        const maxData = await queryPrometheus(`hikaricp_connections_max{job="${service}"}`);
+        const uptimeData = await queryPrometheus(`process_uptime_seconds{job="${service}"}`);
+        
+        const active = extractValue(activeData, 0);
+        const max = extractValue(maxData, 0);
+        const uptime = extractValue(uptimeData, 0);
+        
+        if (max > 0) {
+          mysqlStatus = 'UP';
+          mysqlTotalActive += active;
+          mysqlTotalMax += max;
+          if (uptime > mysqlUptime) mysqlUptime = uptime;
+        }
+      } catch (error) {
+        // 서비스 메트릭 조회 실패 시 무시
+      }
+    }
+    
+    databases.push({
+      databaseName: 'MySQL (User/Place)',
+      type: 'mysql',
+      status: mysqlStatus,
+      connections: Math.round(mysqlTotalActive),
+      maxConnections: Math.round(mysqlTotalMax),
+      connectionUsage: mysqlTotalMax > 0 ? (mysqlTotalActive / mysqlTotalMax) * 100 : 0,
+      databaseSize: 0, // DB exporter 필요
+      tableCount: 0, // DB exporter 필요
+      version: '8.0',
+      uptime: Math.round(mysqlUptime),
+    });
+    
+    // PostgreSQL - Community Service와 Recommendation Service의 HikariCP 메트릭 조회
+    const pgServices = ['community-service', 'recommendation-service'];
+    let pgTotalActive = 0;
+    let pgTotalMax = 0;
+    let pgUptime = 0;
+    let pgStatus = 'DOWN';
+    
+    for (const service of pgServices) {
+      try {
+        const activeData = await queryPrometheus(`hikaricp_connections_active{job="${service}"}`);
+        const maxData = await queryPrometheus(`hikaricp_connections_max{job="${service}"}`);
+        const uptimeData = await queryPrometheus(`process_uptime_seconds{job="${service}"}`);
+        
+        const active = extractValue(activeData, 0);
+        const max = extractValue(maxData, 0);
+        const uptime = extractValue(uptimeData, 0);
+        
+        if (max > 0) {
+          pgStatus = 'UP';
+          pgTotalActive += active;
+          pgTotalMax += max;
+          if (uptime > pgUptime) pgUptime = uptime;
+        }
+      } catch (error) {
+        // 서비스 메트릭 조회 실패 시 무시
+      }
+    }
+    
+    databases.push({
+      databaseName: 'PostgreSQL (Community/Recommendation)',
+      type: 'postgresql',
+      status: pgStatus,
+      connections: Math.round(pgTotalActive),
+      maxConnections: Math.round(pgTotalMax),
+      connectionUsage: pgTotalMax > 0 ? (pgTotalActive / pgTotalMax) * 100 : 0,
+      databaseSize: 0, // DB exporter 필요
+      tableCount: 0, // DB exporter 필요
+      version: '15.0',
+      uptime: Math.round(pgUptime),
+    });
+    
+    // Redis - Gateway Service의 연결 정보 활용
+    try {
+      const redisActiveData = await queryPrometheus(`redis_connections_active{job="gateway-service"}`);
+      const redisMaxData = await queryPrometheus(`redis_connections_max{job="gateway-service"}`);
+      
+      const redisActive = extractValue(redisActiveData, 0);
+      const redisMax = extractValue(redisMaxData, 10000); // 기본값
+      
+      databases.push({
         databaseName: 'Redis',
         type: 'redis',
-        status: 'UP',
+        status: 'UP', // Gateway가 UP이면 Redis도 UP으로 간주
+        connections: Math.round(redisActive),
+        maxConnections: Math.round(redisMax),
+        connectionUsage: redisMax > 0 ? (redisActive / redisMax) * 100 : 0,
+        databaseSize: 0,
+        tableCount: 0,
+        version: '7.0',
+        uptime: 0,
+      });
+    } catch (error) {
+      databases.push({
+        databaseName: 'Redis',
+        type: 'redis',
+        status: 'UNKNOWN',
         connections: 0,
-        maxConnections: 10000, // Redis 기본값
+        maxConnections: 10000,
         connectionUsage: 0,
         databaseSize: 0,
         tableCount: 0,
         version: '7.0',
         uptime: 0,
-      },
-    ];
+      });
+    }
     
     return databases;
   } catch (error) {
@@ -296,7 +391,9 @@ export const getSystemLogs = async (
     const end = Math.floor(Date.now() / 1000); // 현재 시간 (초)
     const start = end - 3600; // 1시간 전
     
-    const response = await axios.get(`${LOKI_URL}/loki/api/v1/query_range`, {
+    // Nginx 프록시: /api/loki/ → http://localhost:3100/
+    // 따라서 /api/loki/api/v1/query_range → http://localhost:3100/api/v1/query_range
+    const response = await axios.get(`${LOKI_URL}/api/v1/query_range`, {
       params: {
         query: query,
         start: start * 1000000000, // 나노초로 변환

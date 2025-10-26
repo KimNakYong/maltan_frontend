@@ -206,22 +206,14 @@ const DatabasesPage: React.FC = () => {
 
                 {/* 추가 정보 */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  {db.type !== 'redis' && (
-                    <>
-                      <Typography variant="caption" color="text.secondary">
-                        크기: {(db.databaseSize / (1024 * 1024)).toFixed(2)} MB
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        테이블: {db.tableCount}개 {db.tableCount === 0 && '(초기화 대기 중)'}
-                      </Typography>
-                    </>
-                  )}
                   <Typography variant="caption" color="text.secondary">
                     버전: {db.version}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    가동시간: {db.uptime}
-                  </Typography>
+                  {db.uptime > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      가동시간: {Math.floor(db.uptime / 3600)}h {Math.floor((db.uptime % 3600) / 60)}m
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </Card>
