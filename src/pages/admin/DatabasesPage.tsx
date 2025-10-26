@@ -49,7 +49,7 @@ const DatabasesPage: React.FC = () => {
   };
 
   // DB 타입에 따른 아이콘 반환
-  const getDbIcon = (type: string) => {
+  const getDbIcon = (_type: string) => {
     return <Storage />;
   };
 
