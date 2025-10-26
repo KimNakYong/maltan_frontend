@@ -350,7 +350,7 @@ const MapTestPage: React.FC = () => {
               Place Service DB에 데이터가 없거나 검색 범위 내에 장소가 없습니다
             </Typography>
             <Typography variant="caption">
-              • API 엔드포인트: <code>/api/place-service/places/nearby</code><br />
+              • API 엔드포인트: <code>/api/places/nearby</code><br />
               • 검색 위치: {center.lat.toFixed(6)}, {center.lng.toFixed(6)}<br />
               • 검색 반경: {radius}km<br />
               • 해결 방법: Place Service DB에 샘플 데이터를 추가하거나 다른 위치를 검색해보세요
