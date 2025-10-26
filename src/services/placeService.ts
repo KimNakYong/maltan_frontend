@@ -216,10 +216,56 @@ export const getRecommendedPlaces = async (limit: number = 10): Promise<Place[]>
 };
 
 /**
- * 장소 생성
+ * 장소 생성 (JSON만)
  */
 export const createPlace = async (placeData: Partial<Place>): Promise<Place> => {
-  const response = await axios.post<ApiResponse<Place>>(`${API_URL}/api/places`, placeData);
+  const response = await axios.post<ApiResponse<Place>>(`${API_URL}/api/places`, placeData, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  return response.data.data;
+};
+
+/**
+ * 장소 생성 (이미지 포함)
+ */
+export const createPlaceWithImage = async (
+  placeData: Partial<Place>,
+  file?: File
+): Promise<Place> => {
+  const formData = new FormData();
+  
+  // 필수 필드
+  if (placeData.name) formData.append('name', placeData.name);
+  if (placeData.address) formData.append('address', placeData.address);
+  if (placeData.latitude !== undefined) formData.append('latitude', placeData.latitude.toString());
+  if (placeData.longitude !== undefined) formData.append('longitude', placeData.longitude.toString());
+  if (placeData.categoryId) formData.append('categoryId', placeData.categoryId.toString());
+  
+  // 선택 필드
+  if (placeData.description) formData.append('description', placeData.description);
+  if (placeData.phone) formData.append('phoneNumber', placeData.phone);
+  if (placeData.website) formData.append('website', placeData.website);
+  if (placeData.openingHours) {
+    // openingHours를 openingTime과 closingTime으로 분리 (필요시)
+    formData.append('openingTime', placeData.openingHours);
+  }
+  
+  // 이미지 파일
+  if (file) {
+    formData.append('file', file);
+  }
+  
+  const response = await axios.post<ApiResponse<Place>>(
+    `${API_URL}/api/places`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
   return response.data.data;
 };
 
