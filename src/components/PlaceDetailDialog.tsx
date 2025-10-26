@@ -22,7 +22,7 @@ import {
 import { Place as PlaceIcon, LocationOn, Category, Article, Image, Star, Edit } from '@mui/icons-material';
 import { Place } from '../services/placeService';
 import { getPostsByPlaceId, Post } from '../services/communityService';
-import { hasUserReviewedPlace, getUserReviewForPlace, Review } from '../services/reviewService';
+import { getUserReviewForPlace, Review } from '../services/reviewService';
 import RatingDialog from './RatingDialog';
 import { useAppSelector } from '../store/hooks';
 import { useNavigate } from 'react-router-dom';
