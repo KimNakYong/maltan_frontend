@@ -20,6 +20,7 @@ export interface Post {
   recruitmentDeadline?: string;
   eventDate?: string;
   eventLocation?: string;
+  placeId?: number;  // Place DB와 연동
   latitude?: number;
   longitude?: number;
   address?: string;
@@ -95,6 +96,7 @@ export interface CreatePostRequest {
   recruitmentDeadline?: string;
   eventDate?: string;
   eventLocation?: string;
+  placeId?: number;  // Place DB와 연동
   latitude?: number;
   longitude?: number;
   address?: string;
@@ -163,6 +165,14 @@ export const updatePost = async (postId: number, data: Partial<CreatePostRequest
 // 게시글 ??��
 export const deletePost = async (postId: number, userId?: number): Promise<void> => {
   await api.delete(`/api/community/posts/${postId}${userId ? `?userId=${userId}` : ''}`);
+};
+
+// Place ID로 게시글 목록 조회
+export const getPostsByPlaceId = async (placeId: number, page: number = 0, size: number = 10): Promise<PostListResponse> => {
+  const response = await api.get(`/api/community/posts/by-place/${placeId}`, {
+    params: { page, size }
+  });
+  return response.data;
 };
 
 // === ?��? API ===

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Paper, Button, TextField, Grid, Card, CardContent, Chip, CircularProgress, Alert, Rating } from '@mui/material';
 import GoogleMap from '../components/GoogleMap';
+import PlaceDetailDialog from '../components/PlaceDetailDialog';
 import { useCurrentLocation } from '../hooks/useGoogleMaps';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SearchIcon from '@mui/icons-material/Search';
@@ -57,6 +58,8 @@ const MapTestPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null); // category ID로 변경
   const [categories, setCategories] = useState<Category[]>([]); // 카테고리 목록
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null); // 선택된 장소
+  const [dialogOpen, setDialogOpen] = useState(false); // Dialog 열림 상태
 
   // 카테고리 목록 로드
   useEffect(() => {
@@ -125,8 +128,8 @@ const MapTestPage: React.FC = () => {
     }
   };
 
-  // 지도 범위 기반 장소 로드
-  const loadPlacesInBounds = async (bounds: google.maps.LatLngBounds, categoryId?: number) => {
+  // 지도 범위 기반 장소 로드 (useCallback으로 최신 selectedCategory 참조)
+  const loadPlacesInBounds = useCallback(async (bounds: google.maps.LatLngBounds, categoryId?: number) => {
     setLoading(true);
     setError(null);
     try {
@@ -168,7 +171,7 @@ const MapTestPage: React.FC = () => {
       setPlaces(placesInView);
       // 카테고리 상태는 사용자가 명시적으로 선택할 때만 변경 (여기서 변경하지 않음)
       
-      // 화면 내 장소에 대해서만 마커 생성
+      // 화면 내 장소에 대해서만 마커 생성 (클릭 핸들러 추가)
       const newMarkers = placesInView.map((place) => ({
         id: place.id.toString(),
         position: {
@@ -176,6 +179,10 @@ const MapTestPage: React.FC = () => {
           lng: place.longitude,
         },
         title: place.name,
+        onClick: () => {
+          setSelectedPlace(place);
+          setDialogOpen(true);
+        },
       }));
       setMarkers(newMarkers);
     } catch (err: any) {
@@ -186,7 +193,7 @@ const MapTestPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // 의존성 제거 - categoryId는 파라미터로 받음
 
   return (
     <Box>
@@ -245,21 +252,21 @@ const MapTestPage: React.FC = () => {
               center={center}
               zoom={14}
               markers={markers}
-              onMapLoad={(mapInstance: google.maps.Map) => {
+              onMapLoad={useCallback((mapInstance: google.maps.Map) => {
                 setMap(mapInstance);
                 // 지도 로드 시 초기 장소 로드
                 const bounds = mapInstance.getBounds();
                 if (bounds) {
                   loadPlacesInBounds(bounds, selectedCategory || undefined);
                 }
-              }}
-              onBoundsChanged={(mapInstance: google.maps.Map) => {
-                // 지도 이동/확대/축소 시 장소 로드
+              }, [loadPlacesInBounds, selectedCategory])}
+              onBoundsChanged={useCallback((mapInstance: google.maps.Map) => {
+                // 지도 이동/확대/축소 시 장소 로드 - 최신 selectedCategory 사용
                 const bounds = mapInstance.getBounds();
                 if (bounds) {
                   loadPlacesInBounds(bounds, selectedCategory || undefined);
                 }
-              }}
+              }, [loadPlacesInBounds, selectedCategory])}
               style={{ width: '100%', height: '600px' }}
             />
           </Paper>
@@ -331,6 +338,8 @@ const MapTestPage: React.FC = () => {
                     }}
                     onClick={() => {
                       setCenter({ lat: place.latitude, lng: place.longitude });
+                      setSelectedPlace(place);
+                      setDialogOpen(true);
                     }}
                   >
                     <CardContent>
@@ -429,6 +438,16 @@ const MapTestPage: React.FC = () => {
           </Alert>
         )}
       </Paper>
+
+      {/* 장소 상세 Dialog */}
+      <PlaceDetailDialog
+        place={selectedPlace}
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setSelectedPlace(null);
+        }}
+      />
     </Box>
   );
 };
