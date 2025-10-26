@@ -33,14 +33,19 @@ import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   MyLocation as MyLocationIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { toast } from 'react-hot-toast';
 import {
   Place,
+  PlacePhoto,
   getAllPlaces,
   createPlace,
   updatePlace,
   deletePlace,
+  uploadPlaceImage,
+  deletePlaceImage,
 } from '../../services/placeService';
 import { Category, getCategoriesWithCount } from '../../services/categoryService';
 import GoogleMap from '../../components/GoogleMap';
@@ -65,6 +70,8 @@ const PlacesPage: React.FC = () => {
   const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.978 });
   const [mapMarker, setMapMarker] = useState<{ lat: number; lng: number } | null>(null);
   const [geocoding, setGeocoding] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [placePhotos, setPlacePhotos] = useState<PlacePhoto[]>([]);
 
   // 데이터 로드
   useEffect(() => {
@@ -106,6 +113,8 @@ const PlacesPage: React.FC = () => {
       // 지도 중심과 마커 설정
       setMapCenter({ lat: place.latitude, lng: place.longitude });
       setMapMarker({ lat: place.latitude, lng: place.longitude });
+      // 기존 이미지 로드
+      setPlacePhotos(place.photos || []);
     } else {
       setEditingPlace(null);
       setFormData({
@@ -122,6 +131,7 @@ const PlacesPage: React.FC = () => {
       // 지도 초기화
       setMapCenter({ lat: 37.5665, lng: 126.978 });
       setMapMarker(null);
+      setPlacePhotos([]);
     }
     setOpenDialog(true);
   };
@@ -130,6 +140,7 @@ const PlacesPage: React.FC = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingPlace(null);
+    setPlacePhotos([]);
   };
 
   // 폼 입력 처리
@@ -249,6 +260,53 @@ const PlacesPage: React.FC = () => {
   // 카테고리 이름 찾기
   const getCategoryName = (categoryId: number) => {
     return categories.find((c) => c.id === categoryId)?.name || '알 수 없음';
+  };
+
+  // 이미지 업로드
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingPlace) {
+      toast.error('장소를 먼저 저장한 후 이미지를 업로드할 수 있습니다');
+      return;
+    }
+
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImage(true);
+    try {
+      const file = files[0];
+      const uploadedPhoto = await uploadPlaceImage(editingPlace.id, file);
+      setPlacePhotos((prev) => [...prev, uploadedPhoto]);
+      toast.success('이미지가 업로드되었습니다');
+      
+      // 장소 목록 새로고침
+      loadData();
+    } catch (error: any) {
+      console.error('이미지 업로드 실패:', error);
+      toast.error(error.response?.data?.message || '이미지 업로드에 실패했습니다');
+    } finally {
+      setUploadingImage(false);
+      // input 초기화
+      event.target.value = '';
+    }
+  };
+
+  // 이미지 삭제
+  const handleImageDelete = async (photoId: number) => {
+    if (!editingPlace) return;
+    if (!confirm('이미지를 삭제하시겠습니까?')) return;
+
+    try {
+      await deletePlaceImage(editingPlace.id, photoId);
+      setPlacePhotos((prev) => prev.filter((p) => p.id !== photoId));
+      toast.success('이미지가 삭제되었습니다');
+      
+      // 장소 목록 새로고침
+      loadData();
+    } catch (error: any) {
+      console.error('이미지 삭제 실패:', error);
+      toast.error('이미지 삭제에 실패했습니다');
+    }
   };
 
   return (
@@ -567,6 +625,91 @@ const PlacesPage: React.FC = () => {
                 </Grid>
               </Grid>
             </Grid>
+
+            {/* 이미지 관리 (편집 모드에서만) */}
+            {editingPlace && (
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
+                <Paper sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6">장소 이미지</Typography>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<PhotoCameraIcon />}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? '업로드 중...' : '이미지 추가'}
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                      />
+                    </Button>
+                  </Box>
+
+                  {placePhotos.length === 0 ? (
+                    <Alert severity="info">
+                      등록된 이미지가 없습니다. 이미지를 추가해주세요.
+                    </Alert>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {placePhotos.map((photo) => (
+                        <Grid item xs={6} sm={4} md={3} key={photo.id}>
+                          <Paper
+                            sx={{
+                              position: 'relative',
+                              paddingTop: '100%',
+                              overflow: 'hidden',
+                              '&:hover .delete-button': {
+                                opacity: 1,
+                              },
+                            }}
+                          >
+                            <Box
+                              component="img"
+                              src={photo.fileUrl || `/uploads/${photo.filePath}`}
+                              alt={photo.originalName || '장소 이미지'}
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                            <IconButton
+                              className="delete-button"
+                              size="small"
+                              sx={{
+                                position: 'absolute',
+                                top: 4,
+                                right: 4,
+                                bgcolor: 'rgba(0, 0, 0, 0.6)',
+                                color: 'white',
+                                opacity: 0,
+                                transition: 'opacity 0.2s',
+                                '&:hover': {
+                                  bgcolor: 'rgba(0, 0, 0, 0.8)',
+                                },
+                              }}
+                              onClick={() => handleImageDelete(photo.id)}
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </Paper>
+                          <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.5 }}>
+                            {photo.originalName || `image-${photo.id}.jpg`}
+                          </Typography>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                </Paper>
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>

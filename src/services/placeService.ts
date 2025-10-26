@@ -238,3 +238,29 @@ export const deletePlace = async (id: number): Promise<void> => {
   await axios.delete(`${API_URL}/api/places/${id}`);
 };
 
+/**
+ * 장소 이미지 업로드
+ */
+export const uploadPlaceImage = async (placeId: number, file: File): Promise<PlacePhoto> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await axios.post<ApiResponse<PlacePhoto>>(
+    `${API_URL}/api/places/${placeId}/photos`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  return response.data.data;
+};
+
+/**
+ * 장소 이미지 삭제
+ */
+export const deletePlaceImage = async (placeId: number, photoId: number): Promise<void> => {
+  await axios.delete(`${API_URL}/api/places/${placeId}/photos/${photoId}`);
+};
+
