@@ -399,7 +399,7 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
  * 시스템 로그 조회 (Loki API 사용)
  */
 export const getSystemLogs = async (
-  limit: number = 100,
+  limit: number = 50,
   service?: string,
   level?: string
 ): Promise<SystemLog[]> => {
@@ -421,7 +421,7 @@ export const getSystemLogs = async (
     
     // Loki query_range API 호출
     const end = Math.floor(Date.now() / 1000); // 현재 시간 (초)
-    const start = end - 3600; // 1시간 전
+    const start = end - 600; // 10분 전 (로그 양 감소)
     
     // Nginx 프록시: /api/loki/ → http://localhost:3100/
     // 따라서 /api/loki/api/v1/query_range → http://localhost:3100/api/v1/query_range

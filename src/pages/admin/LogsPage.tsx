@@ -41,7 +41,7 @@ const LogsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getSystemLogs(500, serviceFilter, levelFilter);
+      const data = await getSystemLogs(100, serviceFilter, levelFilter);
       setLogs(data);
     } catch (err: any) {
       console.error('로그 로드 실패:', err);
