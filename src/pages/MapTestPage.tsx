@@ -4,8 +4,41 @@ import GoogleMap from '../components/GoogleMap';
 import { useCurrentLocation } from '../hooks/useGoogleMaps';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import SearchIcon from '@mui/icons-material/Search';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import AttractionsIcon from '@mui/icons-material/Attractions';
+import HotelIcon from '@mui/icons-material/Hotel';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import TheaterComedyIcon from '@mui/icons-material/TheaterComedy';
+import SportsIcon from '@mui/icons-material/Sports';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
+import CategoryIcon from '@mui/icons-material/Category';
 import { Place, getNearbyPlaces, searchPlaces } from '../services/placeService';
-import { PLACE_CATEGORIES } from '../utils/placeCategories';
+import { Category, getCategoriesWithCount } from '../services/categoryService';
+
+// 카테고리 이름에 따라 아이콘 반환
+const getCategoryIcon = (categoryName: string) => {
+  switch (categoryName) {
+    case '음식점':
+      return <RestaurantIcon />;
+    case '관광지':
+      return <AttractionsIcon />;
+    case '숙박':
+      return <HotelIcon />;
+    case '쇼핑':
+      return <ShoppingBagIcon />;
+    case '문화':
+      return <TheaterComedyIcon />;
+    case '스포츠':
+      return <SportsIcon />;
+    case '의료':
+      return <LocalHospitalIcon />;
+    case '교통':
+      return <DirectionsBusIcon />;
+    default:
+      return <CategoryIcon />;
+  }
+};
 
 const MapTestPage: React.FC = () => {
   const [center, setCenter] = useState({ lat: 37.5665, lng: 126.9780 });
@@ -22,7 +55,21 @@ const MapTestPage: React.FC = () => {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null); // category ID로 변경
+  const [categories, setCategories] = useState<Category[]>([]); // 카테고리 목록
+
+  // 카테고리 목록 로드
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const fetchedCategories = await getCategoriesWithCount();
+        setCategories(fetchedCategories.filter(c => c.isActive)); // 활성화된 카테고리만
+      } catch (error) {
+        console.error('카테고리 로드 실패:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // 내 위치로 이동
   const handleMyLocation = () => {
@@ -79,7 +126,7 @@ const MapTestPage: React.FC = () => {
   };
 
   // 지도 범위 기반 장소 로드
-  const loadPlacesInBounds = async (bounds: google.maps.LatLngBounds, categoryCode?: string) => {
+  const loadPlacesInBounds = async (bounds: google.maps.LatLngBounds, categoryId?: number) => {
     setLoading(true);
     setError(null);
     try {
@@ -93,15 +140,9 @@ const MapTestPage: React.FC = () => {
         new window.google.maps.LatLng(ne.lat(), ne.lng())
       ) / 1000) * 1.5;
       
-      // categoryCode를 categoryId로 변환
-      const categoryId = categoryCode 
-        ? PLACE_CATEGORIES.find(c => c.code === categoryCode)?.id 
-        : undefined;
-      
       console.log('지도 범위 기반 검색:', { 
         center: { lat: center.lat(), lng: center.lng() },
         radius,
-        categoryCode, 
         categoryId 
       });
       
@@ -231,23 +272,23 @@ const MapTestPage: React.FC = () => {
               카테고리별 검색
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {PLACE_CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <Chip
-                  key={category.code}
-                  icon={category.icon}
-                  label={category.name}
+                  key={category.id}
+                  icon={getCategoryIcon(category.name)}
+                  label={`${category.name} (${category.placeCount || 0})`}
                   onClick={() => {
                     // 카테고리 상태를 먼저 설정
-                    setSelectedCategory(category.code);
+                    setSelectedCategory(category.id);
                     if (map) {
                       const bounds = map.getBounds();
                       if (bounds) {
-                        loadPlacesInBounds(bounds, category.code);
+                        loadPlacesInBounds(bounds, category.id);
                       }
                     }
                   }}
-                  color={selectedCategory === category.code ? 'primary' : 'default'}
-                  variant={selectedCategory === category.code ? 'filled' : 'outlined'}
+                  color={selectedCategory === category.id ? 'primary' : 'default'}
+                  variant={selectedCategory === category.id ? 'filled' : 'outlined'}
                 />
               ))}
               {selectedCategory && (
