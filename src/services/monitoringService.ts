@@ -56,6 +56,10 @@ export interface ServiceMetrics {
   requestRate: number; // requests per second
   errorRate: number; // error percentage
   responseTime: number; // average response time in ms
+  cpuUsage: number;
+  memoryUsage: number;
+  memoryUsed: number;
+  memoryLimit: number;
 }
 
 export interface DatabaseMetrics {
@@ -63,6 +67,12 @@ export interface DatabaseMetrics {
   type: string;
   status: string;
   connections: number;
+  maxConnections: number;
+  connectionUsage: number;
+  databaseSize: number;
+  tableCount: number;
+  version: string;
+  uptime: number;
 }
 
 export interface SystemLog {
@@ -71,6 +81,7 @@ export interface SystemLog {
   level: string;
   service: string;
   message: string;
+  userId?: string;
 }
 
 // === API 함수들 ===
@@ -224,9 +235,9 @@ export const getDatabaseMetrics = async (): Promise<DatabaseMetrics[]> => {
  * 시스템 로그 조회 (Prometheus에서는 로그를 저장하지 않음)
  */
 export const getSystemLogs = async (
-  limit: number = 100,
-  service?: string,
-  level?: string
+  _limit: number = 100,
+  _service?: string,
+  _level?: string
 ): Promise<SystemLog[]> => {
   // Prometheus는 로그를 저장하지 않습니다.
   // 로그를 보려면 Loki 같은 별도 로그 시스템이 필요합니다.
