@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
@@ -455,10 +455,10 @@ const CommunityWritePage: React.FC = () => {
               loading={placeLoading}
               value={selectedPlace}
               inputValue={placeSearchInput}
-              onInputChange={(event, newInputValue) => {
+              onInputChange={(_event, newInputValue) => {
                 setPlaceSearchInput(newInputValue);
               }}
-              onChange={(event, newValue) => {
+              onChange={(_event, newValue) => {
                 setSelectedPlace(newValue);
                 if (newValue) {
                   setFormData((prev) => ({
