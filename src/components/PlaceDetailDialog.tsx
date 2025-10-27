@@ -27,6 +27,8 @@ import RatingDialog from './RatingDialog';
 import { useAppSelector } from '../store/hooks';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 interface PlaceDetailDialogProps {
   place: Place | null;
   open: boolean;
@@ -130,7 +132,7 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
               {place.photos.map((photo) => (
                 <ImageListItem key={photo.id}>
                   <img
-                    src={photo.fileUrl || `/uploads/${photo.filePath}`}
+                    src={`${API_URL}${photo.fileUrl || `/uploads/${photo.filePath}`}`}
                     alt={photo.originalName || '장소 이미지'}
                     loading="lazy"
                     style={{ objectFit: 'cover', height: '164px', borderRadius: '4px' }}

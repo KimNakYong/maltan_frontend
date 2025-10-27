@@ -50,6 +50,8 @@ import {
 import { Category, getCategoriesWithCount } from '../../services/categoryService';
 import GoogleMap from '../../components/GoogleMap';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 const PlacesPage: React.FC = () => {
   const [places, setPlaces] = useState<Place[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -679,7 +681,7 @@ const PlacesPage: React.FC = () => {
                           >
                             <Box
                               component="img"
-                              src={photo.fileUrl || `/uploads/${photo.filePath}`}
+                              src={`${API_URL}${photo.fileUrl || `/uploads/${photo.filePath}`}`}
                               alt={photo.originalName || '장소 이미지'}
                               sx={{
                                 position: 'absolute',
