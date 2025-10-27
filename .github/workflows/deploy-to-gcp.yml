@@ -33,12 +33,23 @@ jobs:
       # 4. 환경 변수 파일 생성
       - name: Create .env.production
         run: |
-          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env.production
-          echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" >> .env.production
+          cat > .env.production << EOF
+          VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+          VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          EOF
+          
+          echo "📄 .env.production created:"
+          cat .env.production
 
       # 5. 프로덕션 빌드
       - name: Build production
-        run: npm run build
+        run: |
+          echo "🏗️ Starting build..."
+          npm run build
+          
+          echo "✅ Build completed!"
+          echo "📦 Build output:"
+          ls -lh dist/
 
       # 6. GCP 인증
       - name: Authenticate to Google Cloud
@@ -52,15 +63,7 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      # 8. 빌드 결과 확인
-      - name: Verify build output
-        run: |
-          echo "Checking dist folder..."
-          ls -la dist/
-          echo "Total files:"
-          find dist -type f | wc -l
-
-      # 9. 버킷에 파일 업로드 (rsync 사용)
+      # 8. 버킷에 파일 업로드 (rsync 사용)
       - name: Upload to GCS
         run: |
           # rsync로 동기화 (삭제/추가/수정 자동 처리)
@@ -74,14 +77,14 @@ jobs:
           
           echo "✅ Upload completed!"
 
-      # 10. CDN 캐시 무효화 (CDN 사용 시)
+      # 9. CDN 캐시 무효화 (CDN 사용 시)
       # - name: Invalidate CDN cache
       #   run: |
       #     gcloud compute url-maps invalidate-cdn-cache maltan-frontend-lb \
       #       --path "/*" \
       #       --async
 
-      # 11. 배포 완료 알림
+      # 10. 배포 완료 알림
       - name: Deployment successful
         run: |
           echo "✅ Deployment completed successfully!"
