@@ -40,7 +40,7 @@ jobs:
         run: |
           echo "### Build Size Report 📦" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          du -sh dist >> $GITHUB_STEP_SUMMARY
+          du -sh build >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
       - name: 🔐 Authenticate to Google Cloud
@@ -61,13 +61,13 @@ jobs:
           
           # 빌드 확인
           echo "Checking build output..."
-          ls -la dist/
+          ls -la build/
           
           # 백업 생성 (선택사항)
           # gsutil -m cp -r gs://${{ secrets.GCP_BUCKET_NAME }} gs://${{ secrets.GCP_BUCKET_NAME }}-backup-${TIMESTAMP}
           
           # 배포
-          gsutil -m rsync -r -d dist/ gs://${{ secrets.GCP_BUCKET_NAME }}/
+          gsutil -m rsync -r -d build/ gs://${{ secrets.GCP_BUCKET_NAME }}/
           
           # 캐시 설정
           gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \

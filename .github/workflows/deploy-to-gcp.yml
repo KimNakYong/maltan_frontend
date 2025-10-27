@@ -49,7 +49,7 @@ jobs:
           
           echo "✅ Build completed!"
           echo "📦 Build output:"
-          ls -lh dist/
+          ls -lh build/
 
       # 6. GCP 인증
       - name: Authenticate to Google Cloud
@@ -67,7 +67,7 @@ jobs:
       - name: Upload to GCS
         run: |
           # rsync로 동기화 (삭제/추가/수정 자동 처리)
-          gsutil -m rsync -r -d dist/ gs://${{ secrets.GCP_BUCKET_NAME }}/
+          gsutil -m rsync -r -d build/ gs://${{ secrets.GCP_BUCKET_NAME }}/
           
           # 캐시 설정
           gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \

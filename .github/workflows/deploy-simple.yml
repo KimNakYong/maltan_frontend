@@ -30,10 +30,10 @@ jobs:
       - name: Deploy
         run: |
           # 빌드 확인
-          ls -la dist/
+          ls -la build/
           
           # 버킷에 동기화
-          gsutil -m rsync -r -d dist/ gs://${{ secrets.GCP_BUCKET_NAME }}/
+          gsutil -m rsync -r -d build/ gs://${{ secrets.GCP_BUCKET_NAME }}/
           
           echo "✅ Deployed to https://storage.googleapis.com/${{ secrets.GCP_BUCKET_NAME }}/index.html"
 
