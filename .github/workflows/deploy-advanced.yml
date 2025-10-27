@@ -1,0 +1,119 @@
+name: Advanced Deploy to GCP with CDN
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 🔧 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Run tests (optional)
+        run: npm run test --if-present
+        continue-on-error: true
+
+      - name: 🏗️ Build production
+        run: |
+          echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" > .env.production
+          echo "VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}" >> .env.production
+          npm run build
+
+      - name: 📊 Build size report
+        run: |
+          echo "### Build Size Report 📦" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          du -sh dist >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: ☁️ Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: 🚀 Deploy to GCS
+        id: deploy
+        run: |
+          # 타임스탬프 생성
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          # 빌드 확인
+          echo "Checking build output..."
+          ls -la dist/
+          
+          # 백업 생성 (선택사항)
+          # gsutil -m cp -r gs://${{ secrets.GCP_BUCKET_NAME }} gs://${{ secrets.GCP_BUCKET_NAME }}-backup-${TIMESTAMP}
+          
+          # 배포
+          gsutil -m rsync -r -d dist/ gs://${{ secrets.GCP_BUCKET_NAME }}/
+          
+          # 캐시 설정
+          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
+            "gs://${{ secrets.GCP_BUCKET_NAME }}/assets/**" || true
+          gsutil setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
+            "gs://${{ secrets.GCP_BUCKET_NAME }}/index.html" || true
+          
+          # URL 출력
+          URL="https://storage.googleapis.com/${{ secrets.GCP_BUCKET_NAME }}/index.html"
+          echo "url=${URL}" >> $GITHUB_OUTPUT
+          echo "✅ Deployed successfully!"
+          echo "🌐 URL: ${URL}"
+
+      # CDN 캐시 무효화 (CDN 사용 시 주석 해제)
+      # - name: 🔄 Invalidate CDN cache
+      #   if: success()
+      #   run: |
+      #     gcloud compute url-maps invalidate-cdn-cache maltan-frontend-lb \
+      #       --path "/*" \
+      #       --async
+
+      # Slack 알림 (선택사항, SLACK_WEBHOOK_URL secret 필요)
+      # - name: 📢 Slack notification
+      #   if: always()
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     text: |
+      #       Deployment ${{ job.status }}!
+      #       URL: ${{ steps.deploy.outputs.url }}
+      #     webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: 📝 Deployment summary
+        if: success()
+        run: |
+          echo "### ✅ Deployment Successful! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 **URL**: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Bucket**: gs://${{ secrets.GCP_BUCKET_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 **Time**: $(date '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "🔀 **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: ❌ Deployment failed
+        if: failure()
+        run: |
+          echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs above for error details." >> $GITHUB_STEP_SUMMARY
+

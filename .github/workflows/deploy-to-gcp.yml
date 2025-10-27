@@ -52,37 +52,39 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      # 8. 버킷에 파일 업로드
+      # 8. 빌드 결과 확인
+      - name: Verify build output
+        run: |
+          echo "Checking dist folder..."
+          ls -la dist/
+          echo "Total files:"
+          find dist -type f | wc -l
+
+      # 9. 버킷에 파일 업로드 (rsync 사용)
       - name: Upload to GCS
         run: |
-          # 기존 파일 삭제 (선택사항)
-          gsutil -m rm -r gs://${{ secrets.GCP_BUCKET_NAME }}/* || true
-          
-          # 새 파일 업로드
-          gsutil -m cp -r dist/* gs://${{ secrets.GCP_BUCKET_NAME }}/
+          # rsync로 동기화 (삭제/추가/수정 자동 처리)
+          gsutil -m rsync -r -d dist/ gs://${{ secrets.GCP_BUCKET_NAME }}/
           
           # 캐시 설정
-          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" \
-            "gs://${{ secrets.GCP_BUCKET_NAME }}/**/*.js"
-          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" \
-            "gs://${{ secrets.GCP_BUCKET_NAME }}/**/*.css"
-          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" \
-            "gs://${{ secrets.GCP_BUCKET_NAME }}/**/*.png"
-          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000" \
-            "gs://${{ secrets.GCP_BUCKET_NAME }}/**/*.jpg"
-          gsutil -m setmeta -h "Cache-Control:no-cache" \
-            "gs://${{ secrets.GCP_BUCKET_NAME }}/index.html"
+          gsutil -m setmeta -h "Cache-Control:public, max-age=31536000, immutable" \
+            "gs://${{ secrets.GCP_BUCKET_NAME }}/assets/**" || true
+          gsutil setmeta -h "Cache-Control:no-cache, no-store, must-revalidate" \
+            "gs://${{ secrets.GCP_BUCKET_NAME }}/index.html" || true
+          
+          echo "✅ Upload completed!"
 
-      # 9. CDN 캐시 무효화 (CDN 사용 시)
+      # 10. CDN 캐시 무효화 (CDN 사용 시)
       # - name: Invalidate CDN cache
       #   run: |
       #     gcloud compute url-maps invalidate-cdn-cache maltan-frontend-lb \
       #       --path "/*" \
       #       --async
 
-      # 10. 배포 완료 알림
+      # 11. 배포 완료 알림
       - name: Deployment successful
         run: |
           echo "✅ Deployment completed successfully!"
           echo "🌐 URL: https://storage.googleapis.com/${{ secrets.GCP_BUCKET_NAME }}/index.html"
+          echo "📦 Bucket: gs://${{ secrets.GCP_BUCKET_NAME }}"
 
