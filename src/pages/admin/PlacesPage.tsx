@@ -74,6 +74,8 @@ const PlacesPage: React.FC = () => {
   const [geocoding, setGeocoding] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [placePhotos, setPlacePhotos] = useState<PlacePhoto[]>([]);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // 데이터 로드
   useEffect(() => {
@@ -143,6 +145,8 @@ const PlacesPage: React.FC = () => {
     setOpenDialog(false);
     setEditingPlace(null);
     setPlacePhotos([]);
+    setSelectedImageFile(null);
+    setPreviewImageUrl(null);
   };
 
   // 폼 입력 처리
@@ -242,7 +246,23 @@ const PlacesPage: React.FC = () => {
         );
       } else {
         savedPlace = await createPlace(placeData);
-        toast.success('장소가 추가되었습니다');
+        
+        // 새 장소 추가 시 선택된 이미지가 있으면 업로드
+        if (selectedImageFile) {
+          try {
+            setUploadingImage(true);
+            const uploadedPhoto = await uploadPlaceImage(savedPlace.id, selectedImageFile);
+            savedPlace.photos = [uploadedPhoto];
+            toast.success('장소와 이미지가 추가되었습니다');
+          } catch (error: any) {
+            console.error('이미지 업로드 실패:', error);
+            toast.warning('장소는 추가되었지만 이미지 업로드에 실패했습니다');
+          } finally {
+            setUploadingImage(false);
+          }
+        } else {
+          toast.success('장소가 추가되었습니다');
+        }
         
         // 새로 추가된 장소를 places 배열에 추가
         setPlaces((prevPlaces) => [savedPlace, ...prevPlaces]);
@@ -276,17 +296,25 @@ const PlacesPage: React.FC = () => {
 
   // 이미지 업로드
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!editingPlace) {
-      toast.error('장소를 먼저 저장한 후 이미지를 업로드할 수 있습니다');
-      return;
-    }
-
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const file = files[0];
+
+    // 새 장소 추가 모드: 파일만 저장하고 미리보기 표시
+    if (!editingPlace) {
+      setSelectedImageFile(file);
+      // 미리보기 URL 생성
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewImageUrl(previewUrl);
+      toast.success('이미지가 선택되었습니다. 장소를 저장하면 함께 업로드됩니다.');
+      event.target.value = '';
+      return;
+    }
+
+    // 편집 모드: 바로 업로드
     setUploadingImage(true);
     try {
-      const file = files[0];
       const uploadedPhoto = await uploadPlaceImage(editingPlace.id, file);
       setPlacePhotos((prev) => [...prev, uploadedPhoto]);
       toast.success('이미지가 업로드되었습니다');
@@ -298,7 +326,6 @@ const PlacesPage: React.FC = () => {
       toast.error(error.response?.data?.message || '이미지 업로드에 실패했습니다');
     } finally {
       setUploadingImage(false);
-      // input 초기화
       event.target.value = '';
     }
   };
@@ -638,30 +665,110 @@ const PlacesPage: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* 이미지 관리 (편집 모드에서만) */}
-            {editingPlace && (
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Paper sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6">장소 이미지</Typography>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<PhotoCameraIcon />}
-                      disabled={uploadingImage}
-                    >
-                      {uploadingImage ? '업로드 중...' : '이미지 추가'}
-                      <input
-                        type="file"
-                        hidden
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                    </Button>
-                  </Box>
+            {/* 이미지 관리 */}
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Paper sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    장소 이미지 {!editingPlace && '(선택사항)'}
+                    {editingPlace && placePhotos.length > 0 && (
+                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                        ({placePhotos.length}개)
+                      </Typography>
+                    )}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<PhotoCameraIcon />}
+                    disabled={uploadingImage || (!editingPlace && !!selectedImageFile)}
+                  >
+                    {uploadingImage ? '업로드 중...' : editingPlace ? '이미지 추가' : '이미지 선택'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                  </Button>
+                </Box>
 
-                  {placePhotos.length === 0 ? (
+                {/* 새 장소 추가 모드 - 선택된 이미지 미리보기 */}
+                {!editingPlace && selectedImageFile && previewImageUrl && (
+                  <Box sx={{ mb: 2 }}>
+                    <Alert severity="success" sx={{ mb: 2 }}>
+                      선택된 이미지가 장소 저장 시 함께 업로드됩니다.
+                    </Alert>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6} sm={4} md={3}>
+                        <Paper
+                          sx={{
+                            position: 'relative',
+                            paddingTop: '100%',
+                            overflow: 'hidden',
+                            '&:hover .delete-button': {
+                              opacity: 1,
+                            },
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={previewImageUrl}
+                            alt="미리보기"
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                          <IconButton
+                            className="delete-button"
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              bgcolor: 'rgba(0, 0, 0, 0.6)',
+                              color: 'white',
+                              opacity: 0,
+                              transition: 'opacity 0.2s',
+                              '&:hover': {
+                                bgcolor: 'rgba(0, 0, 0, 0.8)',
+                              },
+                            }}
+                            onClick={() => {
+                              setSelectedImageFile(null);
+                              setPreviewImageUrl(null);
+                              if (previewImageUrl) {
+                                URL.revokeObjectURL(previewImageUrl);
+                              }
+                            }}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Paper>
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.5 }}>
+                          {selectedImageFile.name}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                )}
+
+                {/* 새 장소 추가 모드 - 이미지 선택 전 */}
+                {!editingPlace && !selectedImageFile && (
+                  <Alert severity="info">
+                    이미지는 선택사항입니다. 장소 저장 후에도 이미지를 추가할 수 있습니다.
+                  </Alert>
+                )}
+
+                {/* 편집 모드 - 기존 이미지 목록 */}
+                {editingPlace && (
+                  placePhotos.length === 0 ? (
                     <Alert severity="info">
                       등록된 이미지가 없습니다. 이미지를 추가해주세요.
                     </Alert>
@@ -681,7 +788,11 @@ const PlacesPage: React.FC = () => {
                           >
                             <Box
                               component="img"
-                              src={`${API_URL}${photo.fileUrl || `/uploads/${photo.filePath}`}`}
+                              src={
+                                photo.filePath?.startsWith('https://') 
+                                  ? photo.filePath  // GCS URL은 그대로 사용
+                                  : `${API_URL}/uploads/${photo.filePath}`  // 로컬 파일은 API_URL과 결합
+                              }
                               alt={photo.originalName || '장소 이미지'}
                               sx={{
                                 position: 'absolute',
@@ -718,10 +829,10 @@ const PlacesPage: React.FC = () => {
                         </Grid>
                       ))}
                     </Grid>
-                  )}
-                </Paper>
-              </Grid>
-            )}
+                  )
+                )}
+              </Paper>
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>

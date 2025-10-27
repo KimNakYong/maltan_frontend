@@ -132,7 +132,11 @@ const PlaceDetailDialog: React.FC<PlaceDetailDialogProps> = ({ place, open, onCl
               {place.photos.map((photo) => (
                 <ImageListItem key={photo.id}>
                   <img
-                    src={`${API_URL}${photo.fileUrl || `/uploads/${photo.filePath}`}`}
+                    src={
+                      photo.filePath?.startsWith('https://') 
+                        ? photo.filePath  // GCS URL은 그대로 사용
+                        : `${API_URL}/uploads/${photo.filePath}`  // 로컬 파일은 API_URL과 결합
+                    }
                     alt={photo.originalName || '장소 이미지'}
                     loading="lazy"
                     style={{ objectFit: 'cover', height: '164px', borderRadius: '4px' }}
