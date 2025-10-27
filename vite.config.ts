@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: './', // 상대 경로로 빌드 (Cloud Storage용)
   server: {
     port: 3000,
     host: true,
