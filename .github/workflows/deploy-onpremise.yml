@@ -1,17 +1,7 @@
-name: Deploy Frontend to Ubuntu Server
+name: Deploy Frontend to Ubuntu Server (OnPremise - Backup)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'public/**'
-      - 'index.html'
-      - 'package.json'
-      - 'vite.config.ts'
-      - '.github/workflows/deploy.yml'
-  workflow_dispatch:
+  workflow_dispatch:  # 수동 실행만 허용
 
 jobs:
   deploy:
