@@ -256,7 +256,7 @@ const PlacesPage: React.FC = () => {
             toast.success('장소와 이미지가 추가되었습니다');
           } catch (error: any) {
             console.error('이미지 업로드 실패:', error);
-            toast.warning('장소는 추가되었지만 이미지 업로드에 실패했습니다');
+            toast.error('장소는 추가되었지만 이미지 업로드에 실패했습니다');
           } finally {
             setUploadingImage(false);
           }
